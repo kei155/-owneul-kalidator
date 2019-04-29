@@ -1,0 +1,7 @@
+.awcache
+config
+src
+node_modules
+*.log
+.DS_Store
+.DS_Store?

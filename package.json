@@ -1,0 +1,23 @@
+{
+  "name": "@owneul/kalidator",
+  "version": "1.0.0",
+  "description": "(for View) Validation. you can validate html Element, javascript FormData, or Object data.",
+  "main": "dist/index.js",
+  "scripts": {
+    "prepublish": "npm run build",
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "validator",
+    "kei",
+    "keideaness"
+  ],
+  "repository": "https://github.com/kei155/Owneul-Kalidator.git",
+  "author": "Keideaness <owneul@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^11.13.8",
+    "typescript": "^3.4.4"
+  }
+}
