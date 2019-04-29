@@ -23,7 +23,7 @@ interface Defaults {
 }
 
 interface Option {
-    success?: () => {};
+    pass?: () => {};
     fail?: (errors: Errors) => {};
 }
 
@@ -87,7 +87,7 @@ var is = {
     }
 }
 
-class Validator {
+class Kalidator {
     private data: Data = {};
     private rules: Rules = {};
     private unlabeledRules: Rules = {};
@@ -140,12 +140,12 @@ class Validator {
         // [START] length validate section
         // 최소 n의 길이어야 한다
         minLength: (__key, __extraValue, __data = {}): boolean => {
-            return (is.number(__data[__key]) && __data[__key].length >= __extraValue);
+            return (__data[__key].toString().length >= __extraValue);
         },
 
         // 최대 n의 길이어야 한다
         maxLength: (__key, __extraValue, __data = {}): boolean => {
-            return (is.number(__data[__key]) && __data[__key].length <= __extraValue);
+            return (__data[__key].toString().length <= __extraValue);
         },
 
         // 최소 n1, 최대 n2의 길이어야 한다
@@ -170,7 +170,7 @@ class Validator {
             return (is.number(__data[__key]) && __data[__key] >= __extraValue);
         },
 
-        // 최소 n의 값이어야 한다
+        // 최대 n의 값이어야 한다
         maxValue: (__key, __extraValue, __data = {}): boolean => {
             if (!__extraValue) {
                 throw new InvalidRuleError('Rule maxValue has invalid format(format: \'maxValue:max\')');
@@ -368,15 +368,22 @@ class Validator {
 
         if (!tester(param, extraValue, this.data)) {
             var message = (this.messages[param + '.' + testerName] || this.defaults.messages[testerName] || '')
-                .replace(':param', label || param)
-                .replace(':$concat', `[${Array.isArray(extraValue) ? extraValue.join(', ') : extraValue}]`);
+                .replace(':param', label || param);
 
             if (Array.isArray(extraValue)) {
+                var valueLabels: string[] = [];
+                extraValue.forEach(val => {
+                    valueLabels.push(this.keyAndLabels[val] ? this.keyAndLabels[val] : val);
+                });
+                message.replace(':$concat', `[${valueLabels.join(', ')}]`)
+
                 extraValue.forEach((val, i) => { 
                     var replaceValue = this.keyAndLabels[val] ? this.keyAndLabels[val] : val;
                     message = message.replace(`:$${i}`, replaceValue); 
                 });
             } else {
+                message.replace(':$concat', `[${this.keyAndLabels[extraValue] ? this.keyAndLabels[extraValue] : extraValue}]`)
+
                 var replaceValue = this.keyAndLabels[extraValue] ? this.keyAndLabels[extraValue] : extraValue;
                 message = message.replace(':$0', replaceValue);
             }
@@ -386,7 +393,7 @@ class Validator {
         }
     }
 
-    setData(__data: any): Validator {
+    setData(__data: any): Kalidator {
         this.data = {};
         if (__data instanceof FormData) {
             __data.forEach((value, key) => {
@@ -425,7 +432,7 @@ class Validator {
         return this;
     }
 
-    setRules(__rules?: Rules): Validator {
+    setRules(__rules?: Rules): Kalidator {
         this.rules = {};
         if (__rules) {
             for(var key in __rules) { 
@@ -438,7 +445,7 @@ class Validator {
         return this;
     }
 
-    setRule(__param: string, __rule: Array<any>): Validator {
+    setRule(__param: string, __rule: Array<any>): Kalidator {
         var unlabeldParam = __param,
             label = '';
         this.rules[__param] = __rule;
@@ -459,7 +466,7 @@ class Validator {
         return this;
     }
 
-    setMessages(__messages?: Messages): Validator {
+    setMessages(__messages?: Messages): Kalidator {
         this.messages = {};
         if (__messages) {
             for(var key in __messages) { 
@@ -472,12 +479,12 @@ class Validator {
         return this;
     }
 
-    setMessage(__param: string, __message: string): Validator {
+    setMessage(__param: string, __message: string): Kalidator {
         this.messages[__param] = __message;
         return this;
     }
 
-    registTester(__testerName: string, __tester: (__key: string, __extraValue?: any, __data?: Data) => boolean): Validator {
+    registTester(__testerName: string, __tester: (__key: string, __extraValue?: any, __data?: Data) => boolean): Kalidator {
         this.tester[__testerName] = __tester;
         return this;
     }
@@ -494,12 +501,12 @@ class Validator {
          }
          this.isPassed = Object.keys(this.errors).length === 0 && JSON.stringify(this.errors) === JSON.stringify({});
 
-         if (this.isPassed && __options && __options.success) {
-            __options.success();
+         if (this.isPassed && __options && __options.pass) {
+            __options.pass();
          } else if (!this.isPassed && __options && __options.fail) {
              __options.fail(this.errors);
          }
     }
 }
 
-export = Validator;
+export = Kalidator;

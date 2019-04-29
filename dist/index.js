@@ -12,7 +12,6 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
-var Kate = require('@owneul/kate');
 var TesterNotFoundError = (function (_super) {
     __extends(TesterNotFoundError, _super);
     function TesterNotFoundError(__message) {
@@ -113,11 +112,11 @@ var Validator = (function () {
             },
             minLength: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
-                return (is.number(__data[__key]) && __data[__key].length >= __extraValue);
+                return (__data[__key].toString().length >= __extraValue);
             },
             maxLength: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
-                return (is.number(__data[__key]) && __data[__key].length <= __extraValue);
+                return (__data[__key].toString().length <= __extraValue);
             },
             betweenLength: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -177,7 +176,7 @@ var Validator = (function () {
             email: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
                 if (typeof __data[__key] !== 'string') {
-                    throw new InvalidValueError("Invalid value detected(email testing value must be string. " + [__data[__key]] + " is not a string)");
+                    throw new InvalidValueError("Invalid value detected(email testing value must be string. [" + __data[__key] + "] is not a string)");
                 }
                 return (__data[__key].match(/@/g)
                     && (__data[__key].match(/@/g).length === 1)
@@ -214,15 +213,29 @@ var Validator = (function () {
                 var valueDate = new Date(__data[__key]);
                 var compareDate = new Date(_this.data[__extraValue] ? _this.data[__extraValue] : __extraValue);
                 if (!_this.data[__extraValue] && isNaN(compareDate.getFullYear())) {
-                    throw new InvalidRuleError("Invalid rule detected(earlierThan testing rule must be possible to parse date. cannot parse date from " + [_this.data[__extraValue]] + ".)");
+                    throw new InvalidRuleError("Invalid rule detected(earlierThan testing rule must be possible to parse date. cannot parse date from [" + __extraValue + "].)");
                 }
                 return (!isNaN(compareDate.getFullYear())
-                    && !isNaN(valueDate.getFullYear()));
+                    && !isNaN(valueDate.getFullYear())
+                    && valueDate.getTime() < compareDate.getTime());
+            },
+            laterThan: function (__key, __extraValue, __data) {
+                if (__data === void 0) { __data = {}; }
+                if (!__extraValue) {
+                    throw new InvalidRuleError('Rule laterThan has invalid format(format: \'laterThan:date or key\')');
+                }
+                var valueDate = new Date(__data[__key]);
+                var compareDate = new Date(_this.data[__extraValue] ? _this.data[__extraValue] : __extraValue);
+                if (!_this.data[__extraValue] && isNaN(compareDate.getFullYear())) {
+                    throw new InvalidRuleError("Invalid rule detected(laterThan testing rule must be possible to parse date. cannot parse date from [" + __extraValue + "].)");
+                }
+                return (!isNaN(compareDate.getFullYear())
+                    && !isNaN(valueDate.getFullYear())
+                    && valueDate.getTime() > compareDate.getTime());
             },
         };
         this.languages.basic = this.languages.ko,
             this.defaults.messages = this.languages.basic.messages;
-        console.log(Kate);
         this.setData(__data);
         this.setRules(__rules);
         this.setMessages(__messages);
@@ -270,15 +283,20 @@ var Validator = (function () {
             return;
         if (!tester(param, extraValue, this.data)) {
             var message = (this.messages[param + '.' + testerName] || this.defaults.messages[testerName] || '')
-                .replace(':param', label || param)
-                .replace(':$concat', "[" + (Array.isArray(extraValue) ? extraValue.join(', ') : extraValue) + "]");
+                .replace(':param', label || param);
             if (Array.isArray(extraValue)) {
+                var valueLabels = [];
+                extraValue.forEach(function (val) {
+                    valueLabels.push(_this.keyAndLabels[val] ? _this.keyAndLabels[val] : val);
+                });
+                message.replace(':$concat', "[" + valueLabels.join(', ') + "]");
                 extraValue.forEach(function (val, i) {
                     var replaceValue = _this.keyAndLabels[val] ? _this.keyAndLabels[val] : val;
                     message = message.replace(":$" + i, replaceValue);
                 });
             }
             else {
+                message.replace(':$concat', "[" + (this.keyAndLabels[extraValue] ? this.keyAndLabels[extraValue] : extraValue) + "]");
                 var replaceValue = this.keyAndLabels[extraValue] ? this.keyAndLabels[extraValue] : extraValue;
                 message = message.replace(':$0', replaceValue);
             }
@@ -387,8 +405,8 @@ var Validator = (function () {
             }
         }
         this.isPassed = Object.keys(this.errors).length === 0 && JSON.stringify(this.errors) === JSON.stringify({});
-        if (this.isPassed && __options && __options.success) {
-            __options.success();
+        if (this.isPassed && __options && __options.pass) {
+            __options.pass();
         }
         else if (!this.isPassed && __options && __options.fail) {
             __options.fail(this.errors);
