@@ -7,3 +7,4 @@ build
 npm-debug.log
 logs
 *.log
+types
