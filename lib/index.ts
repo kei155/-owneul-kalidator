@@ -110,6 +110,8 @@ class Kalidator {
         ko: {
             messages: {
                 required: ':param(은/는) 필수입력사항입니다.',
+                requiredIf: '[:$0] 값이 있는 경우 :param(은/는) 필수입력사항입니다.',
+
                 minLength: ':param(은/는) 최소 :$0자를 입력해야합니다.',
                 maxLength: ':param(은/는) 최대 :$0자까지 입력할 수 있습니다.',
                 betweenLength: ':param(은/는) :$0자 ~ :$1자 사이에서 입력할 수 있습니다.',
@@ -125,13 +127,16 @@ class Kalidator {
                 email: ':param의 값은 유효한 이메일 주소여야합니다.',
                 date: ':param의 값은 날짜여야합니다.',
                 file: ':param 파일이 정상적으로 첨부되지 않았습니다.',
-
+                
                 earlierThan: ':param은 :$0보다 이른 날짜여야합니다.',
+                laterThan: ':param은 :$0보다 늦은 날짜여야합니다.',
             },
         },
     };
 
     private defaults: Defaults = {};
+
+    private conditionalRequiredRules = ['requiredIf', 'requiredNotIf'];
 
     private tester: Testers = {
         // 데이터 내에 __key 값이 반드시 존재해야 한다
@@ -139,15 +144,43 @@ class Kalidator {
             return !is.empty(__data[__key]);
         },
 
+        // 데이터 내에 __extraValue 키의 값이 존재한다면 __key의 값도 반드시 존재해야 한다
+        requiredIf: function (__key: string, __extraValue = null, __data = {}): boolean {
+            __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
+            var whitelist = __extraValue.slice(1);
+            if (!is.empty(__data[__extraValue[0]])) {
+                if (whitelist.length === 0 || whitelist.indexOf(__data[__extraValue[0]]) !== -1) {
+                    return !is.empty(__data[__key])
+                } else {
+                    return true;
+                }
+            } else {
+                return true;
+            }
+        },
+
+        // 데이터 내에 __extraValue 키의 값이 존재하지 않거나, 존재하지만 블랙리스트에 포함되어 있다면 __key의 값은 반드시 존재해야 한다
+        requiredNotIf: function (__key: string, __extraValue = null, __data = {}): boolean {
+            __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
+            var blacklist = __extraValue.slice(1);
+            if (!__data[__extraValue[0]]) {
+                return !is.empty(__data[__key]);
+            } else if (__data[__extraValue[0]] && blacklist.indexOf(__data[__extraValue[0]]) !== -1) {
+                return !is.empty(__data[__key]);
+            } else {
+                return true;
+            }
+        },
+
         // [START] length validate section
         // 최소 n의 길이어야 한다
         minLength: (__key, __extraValue, __data = {}): boolean => {
-            return (__data[__key].toString().length >= __extraValue);
+            return this.__isTestNotRequired('minLength', __key) || (__data[__key].toString().length >= __extraValue);
         },
 
         // 최대 n의 길이어야 한다
         maxLength: (__key, __extraValue, __data = {}): boolean => {
-            return (__data[__key].toString().length <= __extraValue);
+            return this.__isTestNotRequired('maxLength', __key) || (__data[__key].toString().length <= __extraValue);
         },
 
         // 최소 n1, 최대 n2의 길이어야 한다
@@ -156,7 +189,7 @@ class Kalidator {
                 throw new InvalidRuleError('Rule betweenLength has invalid format(format: \'betweenLength:min,max\')');
             }
 
-            return (this.tester.minLength(__key, __extraValue[0], __data) && this.tester.maxLength(__key, __extraValue[1], __data));
+            return this.__isTestNotRequired('betweenLength', __key) || (this.tester.minLength(__key, __extraValue[0], __data) && this.tester.maxLength(__key, __extraValue[1], __data));
         },
         // [END] length validate section
 
@@ -169,7 +202,7 @@ class Kalidator {
                 throw new InvalidValueError(`Invalid value detected(minValue testing value must be number. ${__extraValue} is not a number)`);
             }
 
-            return (is.number(__data[__key]) && __data[__key] >= __extraValue);
+            return this.__isTestNotRequired('minValue', __key) || (is.number(__data[__key]) && __data[__key] >= __extraValue);
         },
 
         // 최대 n의 값이어야 한다
@@ -180,7 +213,7 @@ class Kalidator {
                 throw new InvalidValueError(`Invalid value detected(maxValue testing value must be number. ${__extraValue} is not a number)`);
             }
 
-            return (is.number(__data[__key]) && __data[__key] <= __extraValue);
+            return this.__isTestNotRequired('maxValue', __key) || (is.number(__data[__key]) && __data[__key] <= __extraValue);
         },
 
         // 최소 n1, 최대 n2의 값이어야 한다
@@ -189,8 +222,9 @@ class Kalidator {
                 throw new InvalidRuleError('Rule betweenValue has invalid format(format: \'betweenValue:min,max\')');
             }
 
-            return is.number(__data[__key]) 
-                    && (this.tester.minValue(__key, __extraValue[0], __data) && this.tester.maxValue(__key, __extraValue[1], __data));
+            return this.__isTestNotRequired('betweenValue', __key) || 
+                    (is.number(__data[__key]) 
+                        && (this.tester.minValue(__key, __extraValue[0], __data) && this.tester.maxValue(__key, __extraValue[1], __data)));
         },
         // [END] valueSize validate section
 
@@ -203,7 +237,7 @@ class Kalidator {
 
             __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
 
-            return (__extraValue.indexOf(__data[__key]) != -1);
+            return this.__isTestNotRequired('in', __key) || (__extraValue.indexOf(__data[__key]) != -1);
         },
 
         // 주어진 값들 중에 존재하지 않아야 한다
@@ -214,14 +248,14 @@ class Kalidator {
 
             __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
 
-            return (__extraValue.indexOf(__data[__key]) === -1);
+            return this.__isTestNotRequired('notIn', __key) || (__extraValue.indexOf(__data[__key]) === -1);
         },
         // [END] value validate section
 
         // [START] value type validate section
         // 주어진 값이 숫자여야 한다
         number: (__key, __extraValue, __data = {}): boolean => {
-            return (is.number(__data[__key]));
+            return this.__isTestNotRequired('number', __key) || (is.number(__data[__key]));
         },
 
         // 주어진 값이 이메일 주소여야 한다(@로 시작하거나 끝나지 않으며 @를 가지고 있는 여부만 체크함)
@@ -230,7 +264,7 @@ class Kalidator {
                 throw new InvalidValueError(`Invalid value detected(email testing value must be string. [${__data[__key]}] is not a string)`);
             }
 
-            return (
+            return this.__isTestNotRequired('email', __key) || (
                         __data[__key].match(/@/g) 
                     && (__data[__key].match(/@/g).length === 1) 
                     && __data[__key][0] !== '@' 
@@ -240,6 +274,9 @@ class Kalidator {
 
         // 주어진 값이 날짜로 추출 가능한 값이어야 한다
         date: (__key, __extraValue, __data = {}): boolean => {
+            if (this.__isTestNotRequired('date', __key)) {
+                return true;
+            }
             try {
                 return Kate(__data[__key]) && true;
             } catch (error) {
@@ -262,7 +299,7 @@ class Kalidator {
             } else {
                 isPassed = false;
             }
-            return isPassed;
+            return this.__isTestNotRequired('file', __key) || isPassed;
         },
         // [END] value type validate section
 
@@ -280,7 +317,7 @@ class Kalidator {
                 throw new InvalidRuleError(`Invalid rule detected(earlierThan testing rule must be possible to parse date. cannot parse date from [${__extraValue}].)`);
             }
 
-            return (
+            return this.__isTestNotRequired('earlierThan', __key) || (
                 !isNaN(compareDate.getFullYear())
                 && !isNaN(valueDate.getFullYear())
                 && valueDate.getTime() < compareDate.getTime()
@@ -300,7 +337,7 @@ class Kalidator {
                 throw new InvalidRuleError(`Invalid rule detected(laterThan testing rule must be possible to parse date. cannot parse date from [${__extraValue}].)`);
             }
 
-            return (
+            return this.__isTestNotRequired('laterThan', __key) || (
                 !isNaN(compareDate.getFullYear())
                 && !isNaN(valueDate.getFullYear())
                 && valueDate.getTime() > compareDate.getTime()
@@ -319,8 +356,17 @@ class Kalidator {
     }
 
     // 특정 키값이 필수 항목을 가지고 있는지 체크하는 내부호출용 메소드
-    __isRequired(__key:string): boolean {
+    __isRequired(__key: string): boolean {
         return this.requiredKeys.indexOf(__key) != -1;
+    }
+
+    // 필수값이 아니고 값이 없으면 테스트 통과처리할 수 있도록
+    __isTestNotRequired(__testerName: string, __dataKey: string) {
+        return (
+            this.conditionalRequiredRules.indexOf(__testerName) === -1 
+            && !this.__isRequired(__dataKey) 
+            && is.empty(this.data[__dataKey])
+        );
     }
 
     applyZosa(__string: string): string {
@@ -369,9 +415,6 @@ class Kalidator {
             throw new TesterNotFoundError(`Tester [${testerName}] Not Found.`);
         }
 
-        // 필수값이 아니고 값이 없으면 테스트 통과처리
-        if (!this.__isRequired(param) && is.empty(this.data[param])) return;
-
         if (!tester(param, extraValue, this.data)) {
             var message = (this.messages[param + '.' + testerName] || this.defaults.messages[testerName] || '')
                 .replace(':param', label || param);
@@ -412,8 +455,14 @@ class Kalidator {
                       type = input.getAttribute('type'),
                       name = input.getAttribute('name') || 'noname';
                 if (input instanceof HTMLInputElement) {
-                    if (type == 'radio' && input.checked) {
-                        this.data[name] = input.value;
+                    if (type == 'radio') {
+                        if (input.checked) {
+                            this.data[name] = input.value;
+                        }
+                    } else if (type == 'checkbox') {
+                        if (input.checked) {
+                            this.data[name] = input.value;
+                        }
                     } else if (type == 'file') {
                         if (input.files && input.files.length === 1) {
                             this.data[name] = input.files[0];
@@ -465,7 +514,7 @@ class Kalidator {
         this.unlabeledRules[unlabeldParam] = __rule;
         this.keyAndLabels[unlabeldParam] = label;
 
-        if (__rule.indexOf('required') != -1) {
+        if (__rule.indexOf('required') !== -1) {
             this.requiredKeys.push(unlabeldParam);
         }
 

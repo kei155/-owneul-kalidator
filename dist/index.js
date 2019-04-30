@@ -88,6 +88,7 @@ var Kalidator = (function () {
             ko: {
                 messages: {
                     required: ':param(은/는) 필수입력사항입니다.',
+                    requiredIf: '[:$0] 값이 있는 경우 :param(은/는) 필수입력사항입니다.',
                     minLength: ':param(은/는) 최소 :$0자를 입력해야합니다.',
                     maxLength: ':param(은/는) 최대 :$0자까지 입력할 수 있습니다.',
                     betweenLength: ':param(은/는) :$0자 ~ :$1자 사이에서 입력할 수 있습니다.',
@@ -101,30 +102,64 @@ var Kalidator = (function () {
                     date: ':param의 값은 날짜여야합니다.',
                     file: ':param 파일이 정상적으로 첨부되지 않았습니다.',
                     earlierThan: ':param은 :$0보다 이른 날짜여야합니다.',
+                    laterThan: ':param은 :$0보다 늦은 날짜여야합니다.',
                 },
             },
         };
         this.defaults = {};
+        this.conditionalRequiredRules = ['requiredIf', 'requiredNotIf'];
         this.tester = {
             required: function (__key, __extraValue, __data) {
                 if (__extraValue === void 0) { __extraValue = null; }
                 if (__data === void 0) { __data = {}; }
                 return !is.empty(__data[__key]);
             },
+            requiredIf: function (__key, __extraValue, __data) {
+                if (__extraValue === void 0) { __extraValue = null; }
+                if (__data === void 0) { __data = {}; }
+                __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
+                var whitelist = __extraValue.slice(1);
+                if (!is.empty(__data[__extraValue[0]])) {
+                    if (whitelist.length === 0 || whitelist.indexOf(__data[__extraValue[0]]) !== -1) {
+                        return !is.empty(__data[__key]);
+                    }
+                    else {
+                        return true;
+                    }
+                }
+                else {
+                    return true;
+                }
+            },
+            requiredNotIf: function (__key, __extraValue, __data) {
+                if (__extraValue === void 0) { __extraValue = null; }
+                if (__data === void 0) { __data = {}; }
+                __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
+                var blacklist = __extraValue.slice(1);
+                if (!__data[__extraValue[0]]) {
+                    return !is.empty(__data[__key]);
+                }
+                else if (__data[__extraValue[0]] && blacklist.indexOf(__data[__extraValue[0]]) !== -1) {
+                    return !is.empty(__data[__key]);
+                }
+                else {
+                    return true;
+                }
+            },
             minLength: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
-                return (__data[__key].toString().length >= __extraValue);
+                return _this.__isTestNotRequired('minLength', __key) || (__data[__key].toString().length >= __extraValue);
             },
             maxLength: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
-                return (__data[__key].toString().length <= __extraValue);
+                return _this.__isTestNotRequired('maxLength', __key) || (__data[__key].toString().length <= __extraValue);
             },
             betweenLength: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
                 if (!__extraValue[0] || !__extraValue[1]) {
                     throw new InvalidRuleError('Rule betweenLength has invalid format(format: \'betweenLength:min,max\')');
                 }
-                return (_this.tester.minLength(__key, __extraValue[0], __data) && _this.tester.maxLength(__key, __extraValue[1], __data));
+                return _this.__isTestNotRequired('betweenLength', __key) || (_this.tester.minLength(__key, __extraValue[0], __data) && _this.tester.maxLength(__key, __extraValue[1], __data));
             },
             minValue: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -134,7 +169,7 @@ var Kalidator = (function () {
                 else if (isNaN(__extraValue)) {
                     throw new InvalidValueError("Invalid value detected(minValue testing value must be number. " + __extraValue + " is not a number)");
                 }
-                return (is.number(__data[__key]) && __data[__key] >= __extraValue);
+                return _this.__isTestNotRequired('minValue', __key) || (is.number(__data[__key]) && __data[__key] >= __extraValue);
             },
             maxValue: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -144,15 +179,16 @@ var Kalidator = (function () {
                 else if (isNaN(__extraValue)) {
                     throw new InvalidValueError("Invalid value detected(maxValue testing value must be number. " + __extraValue + " is not a number)");
                 }
-                return (is.number(__data[__key]) && __data[__key] <= __extraValue);
+                return _this.__isTestNotRequired('maxValue', __key) || (is.number(__data[__key]) && __data[__key] <= __extraValue);
             },
             betweenValue: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
                 if (!__extraValue[0] || !__extraValue[1]) {
                     throw new InvalidRuleError('Rule betweenValue has invalid format(format: \'betweenValue:min,max\')');
                 }
-                return is.number(__data[__key])
-                    && (_this.tester.minValue(__key, __extraValue[0], __data) && _this.tester.maxValue(__key, __extraValue[1], __data));
+                return _this.__isTestNotRequired('betweenValue', __key) ||
+                    (is.number(__data[__key])
+                        && (_this.tester.minValue(__key, __extraValue[0], __data) && _this.tester.maxValue(__key, __extraValue[1], __data)));
             },
             in: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -160,7 +196,7 @@ var Kalidator = (function () {
                     throw new InvalidRuleError('Rule in has invalid format(format: \'in:a,b,c...\')');
                 }
                 __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
-                return (__extraValue.indexOf(__data[__key]) != -1);
+                return _this.__isTestNotRequired('in', __key) || (__extraValue.indexOf(__data[__key]) != -1);
             },
             notIn: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -168,24 +204,27 @@ var Kalidator = (function () {
                     throw new InvalidRuleError('Rule notIn has invalid format(format: \'notIn:a,b,c...\')');
                 }
                 __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
-                return (__extraValue.indexOf(__data[__key]) === -1);
+                return _this.__isTestNotRequired('notIn', __key) || (__extraValue.indexOf(__data[__key]) === -1);
             },
             number: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
-                return (is.number(__data[__key]));
+                return _this.__isTestNotRequired('number', __key) || (is.number(__data[__key]));
             },
             email: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
                 if (typeof __data[__key] !== 'string') {
                     throw new InvalidValueError("Invalid value detected(email testing value must be string. [" + __data[__key] + "] is not a string)");
                 }
-                return (__data[__key].match(/@/g)
+                return _this.__isTestNotRequired('email', __key) || (__data[__key].match(/@/g)
                     && (__data[__key].match(/@/g).length === 1)
                     && __data[__key][0] !== '@'
                     && __data[__key][__data[__key].length - 1] !== '@');
             },
             date: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
+                if (_this.__isTestNotRequired('date', __key)) {
+                    return true;
+                }
                 try {
                     return Kate(__data[__key]) && true;
                 }
@@ -209,7 +248,7 @@ var Kalidator = (function () {
                 else {
                     isPassed = false;
                 }
-                return isPassed;
+                return _this.__isTestNotRequired('file', __key) || isPassed;
             },
             earlierThan: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -221,7 +260,7 @@ var Kalidator = (function () {
                 if (!_this.data[__extraValue] && isNaN(compareDate.getFullYear())) {
                     throw new InvalidRuleError("Invalid rule detected(earlierThan testing rule must be possible to parse date. cannot parse date from [" + __extraValue + "].)");
                 }
-                return (!isNaN(compareDate.getFullYear())
+                return _this.__isTestNotRequired('earlierThan', __key) || (!isNaN(compareDate.getFullYear())
                     && !isNaN(valueDate.getFullYear())
                     && valueDate.getTime() < compareDate.getTime());
             },
@@ -235,7 +274,7 @@ var Kalidator = (function () {
                 if (!_this.data[__extraValue] && isNaN(compareDate.getFullYear())) {
                     throw new InvalidRuleError("Invalid rule detected(laterThan testing rule must be possible to parse date. cannot parse date from [" + __extraValue + "].)");
                 }
-                return (!isNaN(compareDate.getFullYear())
+                return _this.__isTestNotRequired('laterThan', __key) || (!isNaN(compareDate.getFullYear())
                     && !isNaN(valueDate.getFullYear())
                     && valueDate.getTime() > compareDate.getTime());
             },
@@ -248,6 +287,11 @@ var Kalidator = (function () {
     }
     Kalidator.prototype.__isRequired = function (__key) {
         return this.requiredKeys.indexOf(__key) != -1;
+    };
+    Kalidator.prototype.__isTestNotRequired = function (__testerName, __dataKey) {
+        return (this.conditionalRequiredRules.indexOf(__testerName) === -1
+            && !this.__isRequired(__dataKey)
+            && is.empty(this.data[__dataKey]));
     };
     Kalidator.prototype.applyZosa = function (__string) {
         var result = __string, checkpoints = ['(은/는)', '(이/가)', '(을/를)', '(과/와)', '(아/야)', '(이여/여)', '(이랑/랑)', '(으로/로)', '(으로서/로서)', '(으로써/로써)', '(으로부터/로부터)'];
@@ -285,8 +329,6 @@ var Kalidator = (function () {
         if (!tester) {
             throw new TesterNotFoundError("Tester [" + testerName + "] Not Found.");
         }
-        if (!this.__isRequired(param) && is.empty(this.data[param]))
-            return;
         if (!tester(param, extraValue, this.data)) {
             var message = (this.messages[param + '.' + testerName] || this.defaults.messages[testerName] || '')
                 .replace(':param', label || param);
@@ -323,8 +365,15 @@ var Kalidator = (function () {
             for (var index = 0; index < inputs.length; index++) {
                 var input = inputs[index], type = input.getAttribute('type'), name_1 = input.getAttribute('name') || 'noname';
                 if (input instanceof HTMLInputElement) {
-                    if (type == 'radio' && input.checked) {
-                        this.data[name_1] = input.value;
+                    if (type == 'radio') {
+                        if (input.checked) {
+                            this.data[name_1] = input.value;
+                        }
+                    }
+                    else if (type == 'checkbox') {
+                        if (input.checked) {
+                            this.data[name_1] = input.value;
+                        }
                     }
                     else if (type == 'file') {
                         if (input.files && input.files.length === 1) {
@@ -375,7 +424,7 @@ var Kalidator = (function () {
         }
         this.unlabeledRules[unlabeldParam] = __rule;
         this.keyAndLabels[unlabeldParam] = label;
-        if (__rule.indexOf('required') != -1) {
+        if (__rule.indexOf('required') !== -1) {
             this.requiredKeys.push(unlabeldParam);
         }
         return this;

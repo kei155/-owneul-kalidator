@@ -77,6 +77,8 @@ kalidator.setRules({
 | name | description | memo | 
 |--------|-------|------|
 |required|데이터 내에 __key 값이 반드시 존재해야 한다||
+|requiredIf:targetKey[,whitelist1,whitelist2...]|데이터 내에 targetKey의 값이 존재하는 경우(화이트리스트를 입력하면 화이트리스트 내에 해당값이 존재하는 경우)__key 값 또한 반드시 존재해야 한다||
+|requiredNotIf:targetKey[,blacklist1,blacklist2...]|데이터 내에 targetKey의 값이 존재하지 않는 경우, 또는 존재하지만 블랙리스트 내에 해당값이 존재하는 경우 __key 값은 반드시 존재해야 한다||
 |minLength:n|데이터가 최소 n의 길이어야 한다||
 |maxLength:n|데이터가 최대 n의 길이어야 한다||
 |betweenLength:n1,n2|데이터가 최소 n1, 최대 n2의 길이어야 한다||
@@ -88,7 +90,7 @@ kalidator.setRules({
 |number|주어진 값이 숫자여야 한다||
 |email|주어진 값이 이메일 주소여야 한다|@로 시작하거나 끝나지 않으며 @를 가지고 있는 여부만 체크함|
 |date|주어진 값이 날짜로 추출 가능한 값이어야 한다|Kate 객체|
-|file:mimetype,extension1,extension2...|주어진 값이 파일 객체여야 한다(mimetype 및 확장자 제어)|javascript File 객체 사용|
+|file[:mimetype,extension1,extension2...]|주어진 값이 파일 객체여야 한다(추가조건 입력으로 mimetype 및 확장자 제어)|javascript File 객체 사용|
 |earlierThan|주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터보다 빠른 날짜여야 한다|timestamp 이용|
 |laterThan|주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터보다 늦은 날짜여야 한다|timestamp 이용|
 
@@ -126,5 +128,5 @@ kalidator.setMessages({
 
 [MIT](http://vjpr.mit-license.org)
 
-[npm-image]: https://img.shields.io/npm/v/live-xxx.svg
+[npm-image]: https://img.shields.io/npm/v/@owneul/kalidator.svg
 [npm-url]: https://www.npmjs.com/package/@owneul/kalidator
