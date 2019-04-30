@@ -54,6 +54,19 @@ kalidator
             console.error(__errors);
         },
     });
+
+
+// 또는 동기식으로 validate 를 진행할 수도 있다.
+kalidator.run();
+if (kalidator.isPassed) {
+    pass();
+} else {
+    fail(kalidator.errors);
+}
+
+// or
+kalidator.run();
+myFunction(kalidator.isPassed, kalidator.errors);
 ```
 
 ### rules
