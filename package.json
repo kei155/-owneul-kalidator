@@ -1,6 +1,6 @@
 {
   "name": "@owneul/kalidator",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "(for View) Validation. you can validate html Element, javascript FormData, or Object data.",
   "main": "dist/index.js",
   "scripts": {

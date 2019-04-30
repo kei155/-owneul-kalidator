@@ -1,3 +1,5 @@
+var Kate = require('@owneul/kate');
+
 interface Data {
     [key: string]: any;
 }
@@ -238,7 +240,11 @@ class Kalidator {
 
         // 주어진 값이 날짜로 추출 가능한 값이어야 한다
         date: (__key, __extraValue, __data = {}): boolean => {
-            return !isNaN(Date.parse(__data[__key]));
+            try {
+                return Kate(__data[__key]) && true;
+            } catch (error) {
+                return false;
+            }
         },
 
         // 주어진 값이 파일 객체여야 한다

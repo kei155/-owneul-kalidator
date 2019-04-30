@@ -1,4 +1,4 @@
-# Kate
+# Kalidator
 
 > (for View) Validation. you can validate html Element, javascript FormData, or Object data(javascript).
 

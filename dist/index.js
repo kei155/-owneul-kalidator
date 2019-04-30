@@ -12,6 +12,7 @@ var __extends = (this && this.__extends) || (function () {
         d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
     };
 })();
+var Kate = require('@owneul/kate');
 var TesterNotFoundError = (function (_super) {
     __extends(TesterNotFoundError, _super);
     function TesterNotFoundError(__message) {
@@ -71,8 +72,8 @@ var is = {
         return true;
     }
 };
-var Validator = (function () {
-    function Validator(__data, __rules, __messages) {
+var Kalidator = (function () {
+    function Kalidator(__data, __rules, __messages) {
         var _this = this;
         this.data = {};
         this.rules = {};
@@ -185,7 +186,12 @@ var Validator = (function () {
             },
             date: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
-                return !isNaN(Date.parse(__data[__key]));
+                try {
+                    return Kate(__data[__key]) && true;
+                }
+                catch (error) {
+                    return false;
+                }
             },
             file: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -240,10 +246,10 @@ var Validator = (function () {
         this.setRules(__rules);
         this.setMessages(__messages);
     }
-    Validator.prototype.__isRequired = function (__key) {
+    Kalidator.prototype.__isRequired = function (__key) {
         return this.requiredKeys.indexOf(__key) != -1;
     };
-    Validator.prototype.applyZosa = function (__string) {
+    Kalidator.prototype.applyZosa = function (__string) {
         var result = __string, checkpoints = ['(은/는)', '(이/가)', '(을/를)', '(과/와)', '(아/야)', '(이여/여)', '(이랑/랑)', '(으로/로)', '(으로서/로서)', '(으로써/로써)', '(으로부터/로부터)'];
         for (var index = 0; index < checkpoints.length; index++) {
             var checkpoint = checkpoints[index];
@@ -256,7 +262,7 @@ var Validator = (function () {
         }
         return result;
     };
-    Validator.prototype.test = function (__key, __tester) {
+    Kalidator.prototype.test = function (__key, __tester) {
         var _this = this;
         var param = __key, label = null;
         if (param.indexOf('(') !== -1 && param.indexOf(')') !== -1) {
@@ -304,7 +310,7 @@ var Validator = (function () {
             this.errors[param][testerName] = this.applyZosa(message);
         }
     };
-    Validator.prototype.setData = function (__data) {
+    Kalidator.prototype.setData = function (__data) {
         var _this = this;
         this.data = {};
         if (__data instanceof FormData) {
@@ -347,7 +353,7 @@ var Validator = (function () {
         }
         return this;
     };
-    Validator.prototype.setRules = function (__rules) {
+    Kalidator.prototype.setRules = function (__rules) {
         this.rules = {};
         if (__rules) {
             for (var key in __rules) {
@@ -359,7 +365,7 @@ var Validator = (function () {
         }
         return this;
     };
-    Validator.prototype.setRule = function (__param, __rule) {
+    Kalidator.prototype.setRule = function (__param, __rule) {
         var unlabeldParam = __param, label = '';
         this.rules[__param] = __rule;
         if (__param.indexOf('(') !== -1 && __param.indexOf(')') !== -1) {
@@ -374,7 +380,7 @@ var Validator = (function () {
         }
         return this;
     };
-    Validator.prototype.setMessages = function (__messages) {
+    Kalidator.prototype.setMessages = function (__messages) {
         this.messages = {};
         if (__messages) {
             for (var key in __messages) {
@@ -386,15 +392,15 @@ var Validator = (function () {
         }
         return this;
     };
-    Validator.prototype.setMessage = function (__param, __message) {
+    Kalidator.prototype.setMessage = function (__param, __message) {
         this.messages[__param] = __message;
         return this;
     };
-    Validator.prototype.registTester = function (__testerName, __tester) {
+    Kalidator.prototype.registTester = function (__testerName, __tester) {
         this.tester[__testerName] = __tester;
         return this;
     };
-    Validator.prototype.run = function (__options) {
+    Kalidator.prototype.run = function (__options) {
         for (var param in this.rules) {
             if (this.rules.hasOwnProperty(param)) {
                 var ruleArray = this.rules[param];
@@ -412,6 +418,6 @@ var Validator = (function () {
             __options.fail(this.errors);
         }
     };
-    return Validator;
+    return Kalidator;
 }());
-module.exports = Validator;
+module.exports = Kalidator;
