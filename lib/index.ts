@@ -26,7 +26,7 @@ interface Defaults {
 
 interface Option {
     pass?: () => {};
-    fail?: (errors: Errors) => {};
+    fail?: (errors: Errors, firstErrorMessage: string) => {};
 }
 
 class TesterNotFoundError extends Error {
@@ -122,6 +122,9 @@ class Kalidator {
     
                 in: ':param의 값은 :$concat 중 하나여야합니다.',
                 notIn: ':param의 값은 :$concat 이외의 값이어야합니다.',
+
+                empty: ':param의 값은 비어있어야 합니다.',
+                notEmpty: ':param의 값은 비어있지 않아야 합니다.',
     
                 number: ':param의 값은 숫자여야합니다.',
                 email: ':param의 값은 유효한 이메일 주소여야합니다.',
@@ -133,6 +136,20 @@ class Kalidator {
             },
         },
     };
+
+    public firstErrorMessage: string = '';
+
+    static globalMessage: any = {};
+    static setGlobalMessage(__ruleName: string, __message: string) {
+        Kalidator.globalMessage[__ruleName] = __message;
+        return Kalidator;
+    }
+
+    static globalTester: Testers = {};
+    static registGlobalTester(__testerName: string, __tester: (__key: string, __extraValue?: any, __data?: Data) => boolean) {
+        Kalidator.globalTester[__testerName] = __tester;
+        return Kalidator;
+    }
 
     private defaults: Defaults = {};
 
@@ -202,7 +219,7 @@ class Kalidator {
                 throw new InvalidValueError(`Invalid value detected(minValue testing value must be number. ${__extraValue} is not a number)`);
             }
 
-            return this.__isTestNotRequired('minValue', __key) || (is.number(__data[__key]) && __data[__key] >= __extraValue);
+            return this.__isTestNotRequired('minValue', __key) || (is.number(__data[__key]) && (__data[__key] * 1) >= __extraValue);
         },
 
         // 최대 n의 값이어야 한다
@@ -213,7 +230,7 @@ class Kalidator {
                 throw new InvalidValueError(`Invalid value detected(maxValue testing value must be number. ${__extraValue} is not a number)`);
             }
 
-            return this.__isTestNotRequired('maxValue', __key) || (is.number(__data[__key]) && __data[__key] <= __extraValue);
+            return this.__isTestNotRequired('maxValue', __key) || (is.number(__data[__key]) && (__data[__key] * 1) <= __extraValue);
         },
 
         // 최소 n1, 최대 n2의 값이어야 한다
@@ -250,6 +267,20 @@ class Kalidator {
 
             return this.__isTestNotRequired('notIn', __key) || (__extraValue.indexOf(__data[__key]) === -1);
         },
+
+        // 비어있는 값이어야 한다
+        empty: (__key, __extraValue, __data = {}): boolean => {
+            return this.__isTestNotRequired('empty', __key) || (
+                __data[__key] && __data[__key].replace(/<br\s?\/?>/g, '').replace(/<\/?p\s?>/g, '').trim() == ''
+            );
+        },
+
+        // 비어있는 값이 아니어야 한다
+        notEmpty: (__key, __extraValue, __data = {}): boolean => {
+            return this.__isTestNotRequired('notEmpty', __key) || (
+                __data[__key] && __data[__key].replace(/<br\s?\/?>/g, '').replace(/<\/?p\s?>/g, '').trim() != ''
+            );
+        },
         // [END] value validate section
 
         // [START] value type validate section
@@ -278,7 +309,7 @@ class Kalidator {
                 return true;
             }
             try {
-                return Kate(__data[__key]) && true;
+                return new Kate(__data[__key]) && true;
             } catch (error) {
                 return false;
             }
@@ -289,7 +320,7 @@ class Kalidator {
             var type = Array.isArray(__extraValue) ? __extraValue[0] : __extraValue,
                 extensions = Array.isArray(__extraValue) ? __extraValue.slice(1) : [];
             var isPassed = true;
-            if (__data[__key] instanceof FileList) {
+            if (__data[__key] instanceof FileList || Array.isArray(__data[__key])) {
                 for (let index = 0; index < __data[__key].length; index++) {
                     const file = __data[__key][index];
                     isPassed = isPassed && is.file(file, type, extensions);
@@ -513,6 +544,9 @@ class Kalidator {
 
         this.unlabeledRules[unlabeldParam] = __rule;
         this.keyAndLabels[unlabeldParam] = label;
+        if (this.data[unlabeldParam] === undefined) {
+            this.data[unlabeldParam] = '';
+        }
 
         if (__rule.indexOf('required') !== -1) {
             this.requiredKeys.push(unlabeldParam);
@@ -545,6 +579,10 @@ class Kalidator {
     }
 
     run(__options?: Option) {
+        this.tester = Object.assign(this.tester, Kalidator.globalTester);
+        this.languages.ko.messages = Object.assign(this.languages.ko.messages, Kalidator.globalMessage);
+        this.firstErrorMessage = '';
+
         for(var param in this.rules) { 
             if (this.rules.hasOwnProperty(param)) {
                 var ruleArray = this.rules[param];
@@ -556,10 +594,15 @@ class Kalidator {
          }
          this.isPassed = Object.keys(this.errors).length === 0 && JSON.stringify(this.errors) === JSON.stringify({});
 
+         if (!this.isPassed) {
+            var firstErrorBag = this.errors[Object.keys(this.errors)[0]];
+            this.firstErrorMessage = firstErrorBag[Object.keys(firstErrorBag)[0]];
+         }
+
          if (this.isPassed && __options && __options.pass) {
             __options.pass();
          } else if (!this.isPassed && __options && __options.fail) {
-             __options.fail(this.errors);
+             __options.fail(this.errors, this.firstErrorMessage);
          }
     }
 }

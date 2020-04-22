@@ -97,6 +97,8 @@ var Kalidator = (function () {
                     betweenValue: ':param의 값은 :$0 ~ :$1 사이만 가능합니다.',
                     in: ':param의 값은 :$concat 중 하나여야합니다.',
                     notIn: ':param의 값은 :$concat 이외의 값이어야합니다.',
+                    empty: ':param의 값은 비어있어야 합니다.',
+                    notEmpty: ':param의 값은 비어있지 않아야 합니다.',
                     number: ':param의 값은 숫자여야합니다.',
                     email: ':param의 값은 유효한 이메일 주소여야합니다.',
                     date: ':param의 값은 날짜여야합니다.',
@@ -106,6 +108,7 @@ var Kalidator = (function () {
                 },
             },
         };
+        this.firstErrorMessage = '';
         this.defaults = {};
         this.conditionalRequiredRules = ['requiredIf', 'requiredNotIf'];
         this.tester = {
@@ -169,7 +172,7 @@ var Kalidator = (function () {
                 else if (isNaN(__extraValue)) {
                     throw new InvalidValueError("Invalid value detected(minValue testing value must be number. " + __extraValue + " is not a number)");
                 }
-                return _this.__isTestNotRequired('minValue', __key) || (is.number(__data[__key]) && __data[__key] >= __extraValue);
+                return _this.__isTestNotRequired('minValue', __key) || (is.number(__data[__key]) && (__data[__key] * 1) >= __extraValue);
             },
             maxValue: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -179,7 +182,7 @@ var Kalidator = (function () {
                 else if (isNaN(__extraValue)) {
                     throw new InvalidValueError("Invalid value detected(maxValue testing value must be number. " + __extraValue + " is not a number)");
                 }
-                return _this.__isTestNotRequired('maxValue', __key) || (is.number(__data[__key]) && __data[__key] <= __extraValue);
+                return _this.__isTestNotRequired('maxValue', __key) || (is.number(__data[__key]) && (__data[__key] * 1) <= __extraValue);
             },
             betweenValue: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -206,6 +209,14 @@ var Kalidator = (function () {
                 __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
                 return _this.__isTestNotRequired('notIn', __key) || (__extraValue.indexOf(__data[__key]) === -1);
             },
+            empty: function (__key, __extraValue, __data) {
+                if (__data === void 0) { __data = {}; }
+                return _this.__isTestNotRequired('empty', __key) || (__data[__key] && __data[__key].replace(/<br\s?\/?>/g, '').replace(/<\/?p\s?>/g, '').trim() == '');
+            },
+            notEmpty: function (__key, __extraValue, __data) {
+                if (__data === void 0) { __data = {}; }
+                return _this.__isTestNotRequired('notEmpty', __key) || (__data[__key] && __data[__key].replace(/<br\s?\/?>/g, '').replace(/<\/?p\s?>/g, '').trim() != '');
+            },
             number: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
                 return _this.__isTestNotRequired('number', __key) || (is.number(__data[__key]));
@@ -226,7 +237,7 @@ var Kalidator = (function () {
                     return true;
                 }
                 try {
-                    return Kate(__data[__key]) && true;
+                    return new Kate(__data[__key]) && true;
                 }
                 catch (error) {
                     return false;
@@ -236,7 +247,7 @@ var Kalidator = (function () {
                 if (__data === void 0) { __data = {}; }
                 var type = Array.isArray(__extraValue) ? __extraValue[0] : __extraValue, extensions = Array.isArray(__extraValue) ? __extraValue.slice(1) : [];
                 var isPassed = true;
-                if (__data[__key] instanceof FileList) {
+                if (__data[__key] instanceof FileList || Array.isArray(__data[__key])) {
                     for (var index = 0; index < __data[__key].length; index++) {
                         var file = __data[__key][index];
                         isPassed = isPassed && is.file(file, type, extensions);
@@ -285,6 +296,14 @@ var Kalidator = (function () {
         this.setRules(__rules);
         this.setMessages(__messages);
     }
+    Kalidator.setGlobalMessage = function (__ruleName, __message) {
+        Kalidator.globalMessage[__ruleName] = __message;
+        return Kalidator;
+    };
+    Kalidator.registGlobalTester = function (__testerName, __tester) {
+        Kalidator.globalTester[__testerName] = __tester;
+        return Kalidator;
+    };
     Kalidator.prototype.__isRequired = function (__key) {
         return this.requiredKeys.indexOf(__key) != -1;
     };
@@ -424,6 +443,9 @@ var Kalidator = (function () {
         }
         this.unlabeledRules[unlabeldParam] = __rule;
         this.keyAndLabels[unlabeldParam] = label;
+        if (this.data[unlabeldParam] === undefined) {
+            this.data[unlabeldParam] = '';
+        }
         if (__rule.indexOf('required') !== -1) {
             this.requiredKeys.push(unlabeldParam);
         }
@@ -450,6 +472,9 @@ var Kalidator = (function () {
         return this;
     };
     Kalidator.prototype.run = function (__options) {
+        this.tester = Object.assign(this.tester, Kalidator.globalTester);
+        this.languages.ko.messages = Object.assign(this.languages.ko.messages, Kalidator.globalMessage);
+        this.firstErrorMessage = '';
         for (var param in this.rules) {
             if (this.rules.hasOwnProperty(param)) {
                 var ruleArray = this.rules[param];
@@ -460,13 +485,19 @@ var Kalidator = (function () {
             }
         }
         this.isPassed = Object.keys(this.errors).length === 0 && JSON.stringify(this.errors) === JSON.stringify({});
+        if (!this.isPassed) {
+            var firstErrorBag = this.errors[Object.keys(this.errors)[0]];
+            this.firstErrorMessage = firstErrorBag[Object.keys(firstErrorBag)[0]];
+        }
         if (this.isPassed && __options && __options.pass) {
             __options.pass();
         }
         else if (!this.isPassed && __options && __options.fail) {
-            __options.fail(this.errors);
+            __options.fail(this.errors, this.firstErrorMessage);
         }
     };
+    Kalidator.globalMessage = {};
+    Kalidator.globalTester = {};
     return Kalidator;
 }());
 module.exports = Kalidator;
