@@ -118,18 +118,17 @@ var Kalidator = (function () {
             required: function (__key, __extraValue, __data) {
                 if (__extraValue === void 0) { __extraValue = null; }
                 if (__data === void 0) { __data = {}; }
-                return !is.empty(Kalidator.getTargetValue(__data, __key));
+                return !is.empty(__data[__key]);
             },
             requiredIf: function (__key, __extraValue, __data) {
                 if (__extraValue === void 0) { __extraValue = null; }
                 if (__data === void 0) { __data = {}; }
                 __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
                 var whitelist = __extraValue.slice(1);
-                var targetValue = Kalidator.getTargetValue(__data, __extraValue[0]);
-                if (!is.empty(targetValue)) {
+                if (!is.empty(__data[__extraValue[0]])) {
                     if (whitelist.length === 0 ||
-                        whitelist.indexOf(targetValue) !== -1) {
-                        return !is.empty(Kalidator.getTargetValue(__data, __key));
+                        whitelist.indexOf(__data[__extraValue[0]]) !== -1) {
+                        return !is.empty(__data[__key]);
                     }
                     else {
                         return true;
@@ -144,13 +143,12 @@ var Kalidator = (function () {
                 if (__data === void 0) { __data = {}; }
                 __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
                 var blacklist = __extraValue.slice(1);
-                var targetValue = Kalidator.getTargetValue(__data, __extraValue[0]);
-                if (!targetValue) {
-                    return !is.empty(Kalidator.getTargetValue(__data, __key));
+                if (!__data[__extraValue[0]]) {
+                    return !is.empty(__data[__key]);
                 }
                 else if (__data[__extraValue[0]] &&
-                    blacklist.indexOf(targetValue) !== -1) {
-                    return !is.empty(Kalidator.getTargetValue(__data, __key));
+                    blacklist.indexOf(__data[__extraValue[0]]) !== -1) {
+                    return !is.empty(__data[__key]);
                 }
                 else {
                     return true;
@@ -159,12 +157,12 @@ var Kalidator = (function () {
             minLength: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
                 return (_this.__isTestNotRequired('minLength', __key) ||
-                    (Kalidator.getTargetValue(__data, __key) && Kalidator.getTargetValue(__data, __key).toString().length >= __extraValue));
+                    __data[__key].toString().length >= __extraValue);
             },
             maxLength: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
                 return (_this.__isTestNotRequired('maxLength', __key) ||
-                    (Kalidator.getTargetValue(__data, __key) && Kalidator.getTargetValue(__data, __key).toString().length <= __extraValue));
+                    __data[__key].toString().length <= __extraValue);
             },
             betweenLength: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -184,7 +182,7 @@ var Kalidator = (function () {
                     throw new InvalidValueError("Invalid value detected(minValue testing value must be number. " + __extraValue + " is not a number)");
                 }
                 return (_this.__isTestNotRequired('minValue', __key) ||
-                    (is.number(Kalidator.getTargetValue(__data, __key)) && Kalidator.getTargetValue(__data, __key) * 1 >= __extraValue));
+                    (is.number(__data[__key]) && __data[__key] * 1 >= __extraValue));
             },
             maxValue: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -195,7 +193,7 @@ var Kalidator = (function () {
                     throw new InvalidValueError("Invalid value detected(maxValue testing value must be number. " + __extraValue + " is not a number)");
                 }
                 return (_this.__isTestNotRequired('maxValue', __key) ||
-                    (is.number(Kalidator.getTargetValue(__data, __key)) && Kalidator.getTargetValue(__data, __key) * 1 <= __extraValue));
+                    (is.number(__data[__key]) && __data[__key] * 1 <= __extraValue));
             },
             betweenValue: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -203,7 +201,7 @@ var Kalidator = (function () {
                     throw new InvalidRuleError("Rule betweenValue has invalid format(format: 'betweenValue:min,max')");
                 }
                 return (_this.__isTestNotRequired('betweenValue', __key) ||
-                    (is.number(Kalidator.getTargetValue(__data, __key)) &&
+                    (is.number(__data[__key]) &&
                         _this.tester.minValue(__key, __extraValue[0], __data) &&
                         _this.tester.maxValue(__key, __extraValue[1], __data)));
             },
@@ -214,7 +212,7 @@ var Kalidator = (function () {
                 }
                 __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
                 return (_this.__isTestNotRequired('in', __key) ||
-                    __extraValue.indexOf(Kalidator.getTargetValue(__data, __key)) != -1);
+                    __extraValue.indexOf(__data[__key]) != -1);
             },
             notIn: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -223,13 +221,13 @@ var Kalidator = (function () {
                 }
                 __extraValue = Array.isArray(__extraValue) ? __extraValue : [__extraValue];
                 return (_this.__isTestNotRequired('notIn', __key) ||
-                    __extraValue.indexOf(Kalidator.getTargetValue(__data, __key)) === -1);
+                    __extraValue.indexOf(__data[__key]) === -1);
             },
             empty: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
                 return (_this.__isTestNotRequired('empty', __key) ||
-                    (Kalidator.getTargetValue(__data, __key) &&
-                        Kalidator.getTargetValue(__data, __key)
+                    (__data[__key] &&
+                        __data[__key]
                             .replace(/<br\s?\/?>/g, '')
                             .replace(/<\/?p\s?>/g, '')
                             .trim() == ''));
@@ -237,26 +235,26 @@ var Kalidator = (function () {
             notEmpty: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
                 return (_this.__isTestNotRequired('notEmpty', __key) ||
-                    (Kalidator.getTargetValue(__data, __key) &&
-                        Kalidator.getTargetValue(__data, __key)
+                    (__data[__key] &&
+                        __data[__key]
                             .replace(/<br\s?\/?>/g, '')
                             .replace(/<\/?p\s?>/g, '')
                             .trim() != ''));
             },
             number: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
-                return (_this.__isTestNotRequired('number', __key) || is.number(Kalidator.getTargetValue(__data, __key)));
+                return (_this.__isTestNotRequired('number', __key) || is.number(__data[__key]));
             },
             email: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
-                if (!_this.__isTestNotRequired('email', __key) && typeof Kalidator.getTargetValue(__data, __key) !== 'string') {
-                    throw new InvalidValueError("Invalid value detected(email testing value must be string. [" + Kalidator.getTargetValue(__data, __key) + "] is not a string)");
+                if (typeof __data[__key] !== 'string') {
+                    throw new InvalidValueError("Invalid value detected(email testing value must be string. [" + __data[__key] + "] is not a string)");
                 }
                 return (_this.__isTestNotRequired('email', __key) ||
-                    (Kalidator.getTargetValue(__data, __key).match(/@/g) &&
-                        Kalidator.getTargetValue(__data, __key).match(/@/g).length === 1 &&
-                        Kalidator.getTargetValue(__data, __key)[0] !== '@' &&
-                        Kalidator.getTargetValue(__data, __key)[Kalidator.getTargetValue(__data, __key).length - 1] !== '@'));
+                    (__data[__key].match(/@/g) &&
+                        __data[__key].match(/@/g).length === 1 &&
+                        __data[__key][0] !== '@' &&
+                        __data[__key][__data[__key].length - 1] !== '@'));
             },
             date: function (__key, __extraValue, __data) {
                 if (__data === void 0) { __data = {}; }
@@ -264,7 +262,7 @@ var Kalidator = (function () {
                     return true;
                 }
                 try {
-                    return new Kate(Kalidator.getTargetValue(__data, __key)) && true;
+                    return new Kate(__data[__key]) && true;
                 }
                 catch (error) {
                     return false;
@@ -274,14 +272,14 @@ var Kalidator = (function () {
                 if (__data === void 0) { __data = {}; }
                 var type = Array.isArray(__extraValue) ? __extraValue[0] : __extraValue, extensions = Array.isArray(__extraValue) ? __extraValue.slice(1) : [];
                 var isPassed = true;
-                if (Kalidator.getTargetValue(__data, __key) instanceof FileList || Array.isArray(Kalidator.getTargetValue(__data, __key))) {
-                    for (var index = 0; index < Kalidator.getTargetValue(__data, __key).length; index++) {
-                        var file = Kalidator.getTargetValue(__data, __key)[index];
+                if (__data[__key] instanceof FileList || Array.isArray(__data[__key])) {
+                    for (var index = 0; index < __data[__key].length; index++) {
+                        var file = __data[__key][index];
                         isPassed = isPassed && is.file(file, type, extensions);
                     }
                 }
-                else if (Kalidator.getTargetValue(__data, __key) instanceof File) {
-                    isPassed = is.file(Kalidator.getTargetValue(__data, __key), type, extensions);
+                else if (__data[__key] instanceof File) {
+                    isPassed = is.file(__data[__key], type, extensions);
                 }
                 else {
                     isPassed = false;
@@ -293,8 +291,8 @@ var Kalidator = (function () {
                 if (!__extraValue) {
                     throw new InvalidRuleError("Rule earlierThan has invalid format(format: 'earlierThan:date or key')");
                 }
-                var valueDate = new Date(Kalidator.getTargetValue(__data, __key));
-                var compareDate = new Date(Kalidator.getTargetValue(__data, __extraValue) ? Kalidator.getTargetValue(__data, __extraValue) : __extraValue);
+                var valueDate = new Date(__data[__key]);
+                var compareDate = new Date(_this.data[__extraValue] ? _this.data[__extraValue] : __extraValue);
                 if (isNaN(compareDate.getFullYear())) {
                     return false;
                 }
@@ -311,8 +309,8 @@ var Kalidator = (function () {
                 if (!__extraValue) {
                     throw new InvalidRuleError("Rule laterThan has invalid format(format: 'laterThan:date or key')");
                 }
-                var valueDate = new Date(Kalidator.getTargetValue(__data, __key));
-                var compareDate = new Date(Kalidator.getTargetValue(__data, __extraValue) ? Kalidator.getTargetValue(__data, __extraValue) : __extraValue);
+                var valueDate = new Date(__data[__key]);
+                var compareDate = new Date(_this.data[__extraValue] ? _this.data[__extraValue] : __extraValue);
                 if (isNaN(compareDate.getFullYear())) {
                     return false;
                 }
@@ -340,27 +338,13 @@ var Kalidator = (function () {
         Kalidator.globalTester[__testerName] = __tester;
         return Kalidator;
     };
-    Kalidator.getTargetValue = function (__targetData, __key) {
-        var keyList = __key.split('.');
-        var targetValue = Object.assign({}, __targetData);
-        for (var index = 0; index < keyList.length; index++) {
-            var targetKey = keyList[index];
-            if (targetValue === null || targetValue === undefined) {
-                targetValue = null;
-            }
-            else {
-                targetValue = targetValue[targetKey];
-            }
-        }
-        return targetValue;
-    };
     Kalidator.prototype.__isRequired = function (__key) {
         return this.requiredKeys.indexOf(__key) != -1;
     };
     Kalidator.prototype.__isTestNotRequired = function (__testerName, __dataKey) {
         return (this.conditionalRequiredRules.indexOf(__testerName) === -1 &&
             !this.__isRequired(__dataKey) &&
-            is.empty(Kalidator.getTargetValue(this.data, __dataKey)));
+            is.empty(this.data[__dataKey]));
     };
     Kalidator.prototype.applyZosa = function (__string) {
         var result = __string, checkpoints = [
@@ -421,7 +405,7 @@ var Kalidator = (function () {
                 extraValue.forEach(function (val) {
                     valueLabels.push(_this.keyAndLabels[val] ? _this.keyAndLabels[val] : val);
                 });
-                message = message.replace(':$concat', "[" + valueLabels.join(', ') + "]");
+                message.replace(':$concat', "[" + valueLabels.join(', ') + "]");
                 extraValue.forEach(function (val, i) {
                     var replaceValue = _this.keyAndLabels[val]
                         ? _this.keyAndLabels[val]
@@ -430,7 +414,7 @@ var Kalidator = (function () {
                 });
             }
             else {
-                message = message.replace(':$concat', "[" + (this.keyAndLabels[extraValue]
+                message.replace(':$concat', "[" + (this.keyAndLabels[extraValue]
                     ? this.keyAndLabels[extraValue]
                     : extraValue) + "]");
                 var replaceValue = this.keyAndLabels[extraValue]

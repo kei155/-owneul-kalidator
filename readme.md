@@ -15,6 +15,7 @@ npm i @owneul/kalidator
 ```javascript
 // Kalidator 객체를 생성할 때 데이터화 대상, 검사규칙, 검사미통과시 메세지를 지정한다.
 // 이는 생성자로 지정할 수도 있고, 세터를 통해 각각 지정할 수도 있다.
+// 각각의 세터는 메소드 체이닝을 위해 자기자신을 반환한다.
 // new Kalidator(__data?, __rules?, __messages?);
 // 데이터화 대상으로는 HTML 폼 엘리먼트, javascript FormData 객체, javascript Object 객체가 지정 가능하다.
 // 지정이 완료된 후 run 메소드 실행을 통해 유효성 검사를 시작하며, run 함수는 인자값으로 통과, 미통과에 대한 콜백 함수를 받는다.
@@ -50,7 +51,8 @@ kalidator
         pass: function () {
             alert('all data Validated!');
         },
-        fail: function (__errors) {
+        fail: function (__errors, __firstErrorMessage) {
+            alert(__firstErrorMessage);
             console.error(__errors);
         },
     });
@@ -61,7 +63,7 @@ kalidator.run();
 if (kalidator.isPassed) {
     pass();
 } else {
-    fail(kalidator.errors);
+    fail(kalidator.errors, kalidator.firstErrorMessage);
 }
 
 // or
@@ -69,10 +71,11 @@ kalidator.run();
 myFunction(kalidator.isPassed, kalidator.errors);
 ```
 
-### rules
+### Rules
 ```javascript
 // 데이터에 키값당 실행되어야하는 테스터의 이름을 배열로 지정한다.
 // 키값(라벨)로 룰을 지정할 경우, 메세지에서 :param 문자열을 통해 라벨값을 사용할 수 있다.
+var kalidator = new Kalidator();
 kalidator.setRules({
     'str_id(로그인 아이디)': ['required', 'betweenLength:5,10'],
     'str_password(비밀번호)': ['required'],
@@ -107,7 +110,7 @@ kalidator.setRules({
 |earlierThan|주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터보다 빠른 날짜여야 한다|timestamp 이용|
 |laterThan|주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터보다 늦은 날짜여야 한다|timestamp 이용|
 
-### set custom tester
+### Regist Custom Tester
 ```javascript
 // isMailHostsIn 이라는 이름의 테스터를 등록하는 예제. 
 // 등록한 테스터는 룰과 메세지에서 해당 이름으로 사용할 수 있으며, 성공/실패여부를 bool 값으로 반환해야한다.
@@ -115,12 +118,13 @@ kalidator.setRules({
 //     __param : 해당 테스터를 호출한 데이터 키값
 //     __extraValue : 테스터에게 주어진 검사용 엑스트라 벨류 (검사 룰이 isMailHostsIn:gmail.com,naver.com 으로 지정되었다면 gmail.com, naver.com)
 //     __data : 유효성 검사가 실행되는 스코프의 데이터 객체
+var kalidator = new Kalidator();
 kalidator.registTester('isMailHostsIn', function (__param, __extraValue, __data) {
     return __data[__param] && __extraValue.indexOf(__data[__param]) !== -1;
 });
 ```
 
-### customize messages
+### Set Custom Messages
 ```javascript
 // 메세지는 '키값.테스터이름' : '메세지' 형태의 배열로 등록한다.
 // 메세지 출력의 편의를 위해 몇 가지 치환용 변수가 제공된다.
@@ -128,6 +132,7 @@ kalidator.registTester('isMailHostsIn', function (__param, __extraValue, __data)
 // 2. :$n 문자는 룰 지정에 사용된 엑스트라 벨류로 치환된다. 해당 엑스트라 벨류가 다른 데이터의 키값인 경우 해당 참조데이터의 라벨 또는 키값으로 우선 치환된다.
 // 3. (한국어 전용) '(은/는)', '(이/가)' 처럼 조사 분기는 다른 치환이 실행된 후 앞 문자열의 받침유무에 따라 적절하게 치환된다.
 // 4. :$concat 문자는 룰 지정에 사용된 엑스트라 벨류가 concat된 문자열로 치환된다.
+var kalidator = new Kalidator();
 kalidator.setMessages({
     'str_id.required': ':param(은/는) 필수입니다.',
     'str_id.minLength': ':param(이/가) 최소 :$0자 이상은 되어야합니다.',
@@ -135,6 +140,20 @@ kalidator.setMessages({
     'str_code.isValueAbc': ':param(이/가) 일치하지 않습니다.',
     'file_addimages.file': ':param(은/는) 이미지 파일만 등록할 수 있습니다.',
 });
+```
+
+### Regist Global Custom Tester
+```javascript
+// 전역에서 사용할 테스터를 등록할 수 있다
+Kalidator.registGlobalTester('myTester', function (__param, __extraValue, __data) {
+   return __data[__param] && __data[__param].toString() === 'myTester'; 
+});
+```
+
+### Set Global Custom Message
+```javascript
+// 전역에서 공통적으로 사용할 메세지를 설정할 수 있다
+Kalidator.setGlobalMessage('myTest', ':param is not myTester!');
 ```
 
 ## License

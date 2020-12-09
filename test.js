@@ -1,0 +1,1 @@
+window.Kalidator = require('./lib/index.ts');

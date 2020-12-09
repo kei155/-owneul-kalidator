@@ -1,6 +1,6 @@
 {
   "name": "@owneul/kalidator",
-  "version": "1.0.24",
+  "version": "1.1.4",
   "description": "(for View) Validation. you can validate html Element, javascript FormData, or Object data.",
   "main": "dist/index.js",
   "scripts": {
@@ -22,7 +22,9 @@
   },
   "dependencies": {
     "@owneul/kate": "^1.0.1",
+    "axios": "^0.19.2",
     "formdata-polyfill": "^3.0.19",
+    "jsdoc": "^3.6.4",
     "weakmap-polyfill": "^2.0.2"
   }
 }
