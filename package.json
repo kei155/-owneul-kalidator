@@ -1,12 +1,13 @@
 {
   "name": "@owneul/kalidator",
-  "version": "2.0.1",
+  "version": "2.0.2",
   "description": "(for View) Validation. you can validate Object data, html Element, javascript FormData",
-  "main": "index.js",
+  "main": "index.min.js",
   "scripts": {
     "prepublish": "npm run build",
-    "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "tsc && npm run minify",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "minify": "./node_modules/.bin/uglifyjs --compress --mangle --output index.min.js -- index.js"
   },
   "keywords": [
     "frontend validator",
@@ -19,11 +20,12 @@
   "author": "Keideaness <owneul@gmail.com>",
   "license": "MIT",
   "devDependencies": {
-    "@types/node": "^11.13.8",
-    "typescript": "^3.4.4"
+    "@types/node": "^11.15.39",
+    "typescript": "^3.9.7",
+    "uglify-js": "^3.12.1"
   },
   "dependencies": {
-    "formdata-polyfill": "^3.0.19",
+    "formdata-polyfill": "^3.0.20",
     "moment": "^2.29.1",
     "weakmap-polyfill": "^2.0.2"
   }
