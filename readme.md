@@ -22,6 +22,7 @@ npm i @owneul/kalidator
 
 
 ```javascript
+window.Kalidator = require('@owneul/kalidator');
 // Kalidator 객체를 생성할 때 데이터화 대상, 검사규칙, 검사미통과시 메세지를 지정한다.
 // 이는 생성자로 지정할 수도 있고, 세터를 통해 각각 지정할 수도 있다.
 // 각각의 세터는 메소드 체이닝을 위해 자기자신을 반환한다.
@@ -117,8 +118,8 @@ validator
 // 데이터에 키값당 실행되어야하는 테스터의 이름을 배열로 지정한다.
 // 키값(라벨)로 룰을 지정할 경우, 메세지에서 :param 문자열을 통해 라벨값을 사용할 수 있다.
 // 애스터리스크(*) 문자는 배열로 해석된다.
-var kalidator = new Kalidator();
-kalidator.setRules({
+var validator = new Kalidator();
+validator.setRules({
     'goodsList.*.id(상품코드)': ['required', 'minValue:1'],
     'goodsList.*.name(상품명)': ['required'],
     'goodsList.*.price(판매가)': ['required', 'number'],
