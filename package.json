@@ -1,7 +1,7 @@
 {
   "name": "@owneul/kalidator",
-  "version": "1.1.4",
-  "description": "(for View) Validation. you can validate html Element, javascript FormData, or Object data.",
+  "version": "2.0.0",
+  "description": "(for View) Validation. you can validate Object data, html Element, javascript FormData",
   "main": "dist/index.js",
   "scripts": {
     "prepublish": "npm run build",
@@ -9,6 +9,8 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [
+    "frontend validator",
+    "javascript validator",
     "validator",
     "kei",
     "keideaness"
@@ -21,10 +23,9 @@
     "typescript": "^3.4.4"
   },
   "dependencies": {
-    "@owneul/kate": "^1.0.1",
     "axios": "^0.19.2",
     "formdata-polyfill": "^3.0.19",
-    "jsdoc": "^3.6.4",
+    "moment": "^2.29.1",
     "weakmap-polyfill": "^2.0.2"
   }
 }

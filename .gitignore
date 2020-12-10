@@ -9,3 +9,9 @@ logs
 *.log
 types
 test.html
+test.js
+dist/*.js
+dist/*.map
+dist/*.html
+dist/test
+.cache
