@@ -1057,7 +1057,8 @@ class Kalidator {
             let paramAsteriskFlatten = [param]
 
             while (
-              !paramAsteriskFlatten.some((paf) => paf.indexOf('*') === -1)
+              paramAsteriskFlatten.length > 0
+              && !paramAsteriskFlatten.some((paf) => paf.indexOf('*') === -1)
             ) {
               const replacedParams: any[] = []
               paramAsteriskFlatten.forEach((paf) => {
@@ -1082,6 +1083,7 @@ class Kalidator {
                   replacedParams.push(paf)
                 }
               })
+              console.log(replacedParams)
               paramAsteriskFlatten = replacedParams
             }
 
