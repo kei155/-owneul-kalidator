@@ -107,9 +107,9 @@ validator
     .then(function () {
         alert('all validate passed!');
     })
-    .catch(function (err) {
-        console.error('모든 실패한 테스트에 대한 메세지 : ', err.errors);
-        console.error('첫 번째 실패 테스트 메세지 : ', err.firstErrorMessage);
+    .catch(function (fail) {
+        console.error('모든 실패한 테스트에 대한 메세지 : ', fail.errors);
+        console.error('첫 번째 실패 테스트 메세지 : ', fail.firstErrorMessage);
     })
 ```
 

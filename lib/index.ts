@@ -1,3 +1,60 @@
+// ECMA-262 5판, 15.4.4.18항의 작성 과정
+// 참고: http://es5.github.io/#x15.4.4.18
+if (!Array.prototype.forEach) {
+  Array.prototype.forEach = function (callback, thisArg) {
+      let T, k;
+      if (this === null) {
+          throw new TypeError(' this is null or not defined');
+      }
+
+      // 1. O를 인수로서 |this| 값을 전달한
+      // toObject() 호출의 결과이게 함.
+      const O = Object(this);
+
+      // 2. lenValue를 "length" 인수가 있는 O의 Get()
+      // 내부 메소드 호출의 결과이게 함.
+      // 3. len을 toUint32(lenValue)이게 함.
+      const len = O.length >>> 0;
+
+      // 4. isCallable(callback)이 false인 경우, TypeError 예외 발생.
+      // 참조: http://es5.github.com/#x9.11
+      if (typeof callback !== "function") {
+          throw new TypeError(callback + ' is not a function');
+      }
+
+      // 5. thisArg가 공급됐다면, T를 thisArg이게 함;
+      // 아니면 T를 undefined이게 함.
+      if (arguments.length > 1) {
+          T = thisArg;
+      }
+
+      // 6. k를 0이게 함
+      k = 0;
+
+      // 7. 반복, k < len일 동안
+      while (k < len) {
+          let kValue;
+          // a. Pk를 ToString(k)이게 함.
+          //    이는 in 연산자의 좌변(LHS) 피연산자에 대한 묵시(implicit)임
+          // b. kPresent를 Pk 인수가 있는 O의 HasProperty
+          //    내부 메소드 호출의 결과이게 함.
+          //    이 과정은 c와 결합될 수 있음
+          // c. kPresent가 true인 경우, 그러면
+          if (k in O) {
+              // i. kValue를 인수 Pk가 있는 O의 Get 내부
+              // 메소드 호출의 결과이게 함.
+              kValue = O[k];
+
+              // ii. this 값으로 T 그리고 kValue, k 및 O을 포함하는
+              // 인수 목록과 함께 callback의 call 내부 메소드 호출.
+              callback.call(T, kValue, k, O);
+          }
+          // d. k를 1씩 증가.
+          k++;
+      }
+      // 8. undefined 반환
+  };
+}
 require('formdata-polyfill')
 require('weakmap-polyfill')
 import moment from 'moment'
@@ -72,7 +129,7 @@ const is = {
     const isEmpty =
       __target === undefined ||
       __target === null ||
-      (__target.length && __target.length === 0) ||
+      (!isNaN(__target.length) && __target.length === 0) ||
       (__target instanceof FileList && __target.length === 0)
 
     return isEmpty
@@ -317,6 +374,10 @@ class Kalidator {
         }
 
         const targetValue = Kalidator.getTargetValue(data, key)
+        if (targetValue === null) {
+          return false;
+        }
+
         if (!isNaN(targetValue.length)) {
           // 목표값이 길이 값을 가진 대상이라면 길이 검사
           return targetValue.length >= minLength
@@ -342,6 +403,10 @@ class Kalidator {
         }
 
         const targetValue = Kalidator.getTargetValue(data, key)
+        if (targetValue === null) {
+          return false;
+        }
+
         if (!isNaN(targetValue.length)) {
           // 목표값이 길이 값을 가진 대상이라면 길이 검사
           return targetValue.length <= maxLength
@@ -803,148 +868,6 @@ class Kalidator {
     }
 
     return result
-  }
-
-  // 실제 테스트 실행
-  test(key: string, ruleString: any) {
-    let param: string = key // testParam(테스트 파라미터(확인용))
-    let label: string = ''
-    let testerName: string = ''
-
-    if (param.indexOf('(') !== -1 && param.indexOf(')') !== -1) {
-      const paramAndLabels = param.split('(') // ["testParam", "테스트 파라미터", "확인용))"]
-      param = paramAndLabels[0] // "testParam"
-      label = paramAndLabels.slice(1).join('(').replace(/\)$/, '') // "테스트파라미터(확인용)"
-    }
-
-    let extraValue: any[] = []
-
-    if (ruleString.indexOf(':') !== -1) {
-      // requiredIf:subject,math,music
-      const testerNameAndExtraValues = ruleString.split(':') // ["requiredIf", "subject,math,music"]
-      testerName = testerNameAndExtraValues[0] // "requiredIf"
-      if (testerNameAndExtraValues[1].indexOf(',') !== -1) {
-        extraValue = testerNameAndExtraValues[1].split(',') // ["subject", "math", "music"]
-      } else {
-        extraValue = [testerNameAndExtraValues[1]]
-      }
-    } else {
-      testerName = ruleString
-    }
-
-    const tester = this.$testers[testerName]
-    if (!tester) {
-      throw new TesterNotFoundError(`Tester [${testerName}] Not Found.`)
-    }
-
-    // 애스터리스크 치환작업
-    let paramAsteriskFlatten = [param]
-
-    while (!paramAsteriskFlatten.some((paf) => paf.indexOf('*') === -1)) {
-      const replacedParams: any[] = []
-      paramAsteriskFlatten.forEach((paf) => {
-        const splitedPaf = paf.split('.')
-        const asteriskPosition = splitedPaf.indexOf('*')
-        if (asteriskPosition > -1) {
-          const beforeAsterisk = splitedPaf.slice(0, asteriskPosition)
-          const beforeAsteriskTargetValue = Kalidator.getTargetValue(
-            this.data,
-            beforeAsterisk.join('.'),
-          )
-          if (beforeAsteriskTargetValue !== null) {
-            for (let j = 0; j < beforeAsteriskTargetValue.length; j++) {
-              const clone = splitedPaf.concat([])
-              clone.splice(asteriskPosition, 1, j.toString())
-              replacedParams.push(clone.join('.'))
-            }
-          } else {
-            replacedParams.push(splitedPaf.join('.'))
-          }
-        } else {
-          replacedParams.push(paf)
-        }
-      })
-      paramAsteriskFlatten = replacedParams
-    }
-
-    const testFailHandler = (paramForRow: string) => {
-      // 검사기 통과 못 한 파라미터에 form.data.2.subject 처럼
-      let messageKey = paramForRow
-      const isNumericExist = messageKey
-        .split('.')
-        .some((splited) => this.$is.number(splited))
-      if (isNumericExist) {
-        messageKey = messageKey
-          .split('.')
-          .map((splited) => {
-            return this.$is.number(splited) ? '*' : splited
-          })
-          .join('.')
-      }
-      let message: string = (
-        this.$messages[paramForRow + '.' + testerName] ||
-        this.$messages[messageKey + '.' + testerName] ||
-        this.$defaults.messages[testerName] ||
-        this.$defaults.messages[messageKey] ||
-        ''
-      )
-        .replace(/:param/g, label || paramForRow)
-        .replace(/:value/g, this.data[paramForRow])
-
-      if (isNumericExist) {
-        let asteriskSeq = 0
-        paramForRow.split('.').forEach((splited) => {
-          if (this.$is.number(splited)) {
-            message = message.replace(
-              new RegExp(`:\\*${asteriskSeq}`, 'g'),
-              `${Number.parseInt(splited) + 1}`,
-            )
-          }
-        })
-      }
-
-      const valueLabels: string[] = []
-      extraValue.forEach((val) => {
-        valueLabels.push(
-          this.$keyAndLabels[val] ? this.$keyAndLabels[val] : val,
-        )
-      })
-
-      message = message.replace(/:\$concat/g, `[${valueLabels.join(', ')}]`)
-
-      extraValue.forEach((val, i) => {
-        const replaceValue = this.$keyAndLabels[val]
-          ? this.$keyAndLabels[val]
-          : val
-        message = message.replace(new RegExp(`:\\$${i}`, 'g'), replaceValue)
-      })
-
-      this.errors[paramForRow] = this.errors[paramForRow] || {}
-      this.errors[paramForRow][testerName] = this.applyZosa(message)
-    }
-
-    return Promise.all(
-      paramAsteriskFlatten.map((paramForRow) => {
-        const testResult = tester(paramForRow, extraValue, this.data)
-        if (testResult instanceof Promise) {
-          return testResult
-        } else {
-          return new Promise((resolve) => {
-            resolve(testResult)
-          })
-          if (testResult === true) {
-            return new Promise((resolve, reject) => {
-              resolve(true)
-            })
-          } else {
-            return new Promise((resolve, reject) => {
-              testFailHandler(paramForRow)
-              resolve(false)
-            })
-          }
-        }
-      }),
-    )
   }
 
   // 데이터 할당 메소드

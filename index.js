@@ -15,6 +15,31 @@ var __extends = (this && this.__extends) || (function () {
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
+if (!Array.prototype.forEach) {
+    Array.prototype.forEach = function (callback, thisArg) {
+        var T, k;
+        if (this === null) {
+            throw new TypeError(' this is null or not defined');
+        }
+        var O = Object(this);
+        var len = O.length >>> 0;
+        if (typeof callback !== "function") {
+            throw new TypeError(callback + ' is not a function');
+        }
+        if (arguments.length > 1) {
+            T = thisArg;
+        }
+        k = 0;
+        while (k < len) {
+            var kValue = void 0;
+            if (k in O) {
+                kValue = O[k];
+                callback.call(T, kValue, k, O);
+            }
+            k++;
+        }
+    };
+}
 require('formdata-polyfill');
 require('weakmap-polyfill');
 var moment_1 = __importDefault(require("moment"));
@@ -43,7 +68,7 @@ var is = {
     empty: function (__target) {
         var isEmpty = __target === undefined ||
             __target === null ||
-            (__target.length && __target.length === 0) ||
+            (!isNaN(__target.length) && __target.length === 0) ||
             (__target instanceof FileList && __target.length === 0);
         return isEmpty;
     },
@@ -170,6 +195,9 @@ var Kalidator = (function () {
                         throw new InvalidRuleError("\uAE38\uC774\uAC12 [" + minLength + "]\uB294 \uC22B\uC790\uB85C \uBCC0\uD658\uD560 \uC218 \uC5C6\uB294 \uAC12\uC785\uB2C8\uB2E4.");
                     }
                     var targetValue = Kalidator.getTargetValue(data, key);
+                    if (targetValue === null) {
+                        return false;
+                    }
                     if (!isNaN(targetValue.length)) {
                         return targetValue.length >= minLength;
                     }
@@ -186,6 +214,9 @@ var Kalidator = (function () {
                         throw new InvalidRuleError("\uAE38\uC774\uAC12 [" + maxLength + "]\uB294 \uC22B\uC790\uB85C \uBCC0\uD658\uD560 \uC218 \uC5C6\uB294 \uAC12\uC785\uB2C8\uB2E4.");
                     }
                     var targetValue = Kalidator.getTargetValue(data, key);
+                    if (targetValue === null) {
+                        return false;
+                    }
                     if (!isNaN(targetValue.length)) {
                         return targetValue.length <= maxLength;
                     }
@@ -521,128 +552,6 @@ var Kalidator = (function () {
         }
         return result;
     };
-    Kalidator.prototype.test = function (key, ruleString) {
-        var _this = this;
-        var param = key;
-        var label = '';
-        var testerName = '';
-        if (param.indexOf('(') !== -1 && param.indexOf(')') !== -1) {
-            var paramAndLabels = param.split('(');
-            param = paramAndLabels[0];
-            label = paramAndLabels.slice(1).join('(').replace(/\)$/, '');
-        }
-        var extraValue = [];
-        if (ruleString.indexOf(':') !== -1) {
-            var testerNameAndExtraValues = ruleString.split(':');
-            testerName = testerNameAndExtraValues[0];
-            if (testerNameAndExtraValues[1].indexOf(',') !== -1) {
-                extraValue = testerNameAndExtraValues[1].split(',');
-            }
-            else {
-                extraValue = [testerNameAndExtraValues[1]];
-            }
-        }
-        else {
-            testerName = ruleString;
-        }
-        var tester = this.$testers[testerName];
-        if (!tester) {
-            throw new TesterNotFoundError("Tester [" + testerName + "] Not Found.");
-        }
-        var paramAsteriskFlatten = [param];
-        var _loop_1 = function () {
-            var replacedParams = [];
-            paramAsteriskFlatten.forEach(function (paf) {
-                var splitedPaf = paf.split('.');
-                var asteriskPosition = splitedPaf.indexOf('*');
-                if (asteriskPosition > -1) {
-                    var beforeAsterisk = splitedPaf.slice(0, asteriskPosition);
-                    var beforeAsteriskTargetValue = Kalidator.getTargetValue(_this.data, beforeAsterisk.join('.'));
-                    if (beforeAsteriskTargetValue !== null) {
-                        for (var j = 0; j < beforeAsteriskTargetValue.length; j++) {
-                            var clone = splitedPaf.concat([]);
-                            clone.splice(asteriskPosition, 1, j.toString());
-                            replacedParams.push(clone.join('.'));
-                        }
-                    }
-                    else {
-                        replacedParams.push(splitedPaf.join('.'));
-                    }
-                }
-                else {
-                    replacedParams.push(paf);
-                }
-            });
-            paramAsteriskFlatten = replacedParams;
-        };
-        while (!paramAsteriskFlatten.some(function (paf) { return paf.indexOf('*') === -1; })) {
-            _loop_1();
-        }
-        var testFailHandler = function (paramForRow) {
-            var messageKey = paramForRow;
-            var isNumericExist = messageKey
-                .split('.')
-                .some(function (splited) { return _this.$is.number(splited); });
-            if (isNumericExist) {
-                messageKey = messageKey
-                    .split('.')
-                    .map(function (splited) {
-                    return _this.$is.number(splited) ? '*' : splited;
-                })
-                    .join('.');
-            }
-            var message = (_this.$messages[paramForRow + '.' + testerName] ||
-                _this.$messages[messageKey + '.' + testerName] ||
-                _this.$defaults.messages[testerName] ||
-                _this.$defaults.messages[messageKey] ||
-                '')
-                .replace(/:param/g, label || paramForRow)
-                .replace(/:value/g, _this.data[paramForRow]);
-            if (isNumericExist) {
-                var asteriskSeq_1 = 0;
-                paramForRow.split('.').forEach(function (splited) {
-                    if (_this.$is.number(splited)) {
-                        message = message.replace(new RegExp(":\\*" + asteriskSeq_1, 'g'), "" + (Number.parseInt(splited) + 1));
-                    }
-                });
-            }
-            var valueLabels = [];
-            extraValue.forEach(function (val) {
-                valueLabels.push(_this.$keyAndLabels[val] ? _this.$keyAndLabels[val] : val);
-            });
-            message = message.replace(/:\$concat/g, "[" + valueLabels.join(', ') + "]");
-            extraValue.forEach(function (val, i) {
-                var replaceValue = _this.$keyAndLabels[val]
-                    ? _this.$keyAndLabels[val]
-                    : val;
-                message = message.replace(new RegExp(":\\$" + i, 'g'), replaceValue);
-            });
-            _this.errors[paramForRow] = _this.errors[paramForRow] || {};
-            _this.errors[paramForRow][testerName] = _this.applyZosa(message);
-        };
-        return Promise.all(paramAsteriskFlatten.map(function (paramForRow) {
-            var testResult = tester(paramForRow, extraValue, _this.data);
-            if (testResult instanceof Promise) {
-                return testResult;
-            }
-            else {
-                return new Promise(function (resolve) {
-                    resolve(testResult);
-                });
-                if (testResult === true) {
-                    return new Promise(function (resolve, reject) {
-                        resolve(true);
-                    });
-                }
-                else {
-                    return new Promise(function (resolve, reject) {
-                        testFailHandler(paramForRow);
-                        resolve(false);
-                    });
-                }
-            }
-        }));
-    };
     Kalidator.prototype.setData = function (data) {
         var _this = this;
         this.data = {};
@@ -799,7 +708,7 @@ var Kalidator = (function () {
                         throw new TesterNotFoundError("Tester [" + testerName + "] Not Found.");
                     }
                     var paramAsteriskFlatten = [param];
-                    var _loop_2 = function () {
+                    var _loop_1 = function () {
                         var replacedParams = [];
                         paramAsteriskFlatten.forEach(function (paf) {
                             var splitedPaf = paf.split('.');
@@ -825,7 +734,7 @@ var Kalidator = (function () {
                         paramAsteriskFlatten = replacedParams;
                     };
                     while (!paramAsteriskFlatten.some(function (paf) { return paf.indexOf('*') === -1; })) {
-                        _loop_2();
+                        _loop_1();
                     }
                     var getFailMessage = function (paramForRow) {
                         var messageKey = paramForRow;
@@ -848,11 +757,11 @@ var Kalidator = (function () {
                             .replace(/:param/g, label || paramForRow)
                             .replace(/:value/g, Kalidator.getTargetValue(_this.data, paramForRow));
                         if (isNumericExist) {
-                            var asteriskSeq_2 = 0;
+                            var asteriskSeq_1 = 0;
                             paramForRow.split('.').forEach(function (splited) {
                                 if (_this.$is.number(splited)) {
-                                    message = message.replace(new RegExp(":\\*" + asteriskSeq_2, 'g'), "" + (Number.parseInt(splited) + 1));
-                                    asteriskSeq_2++;
+                                    message = message.replace(new RegExp(":\\*" + asteriskSeq_1, 'g'), "" + (Number.parseInt(splited) + 1));
+                                    asteriskSeq_1++;
                                 }
                             });
                         }
