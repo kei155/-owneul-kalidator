@@ -708,9 +708,15 @@ var Kalidator = (function () {
                         throw new TesterNotFoundError("Tester [" + testerName + "] Not Found.");
                     }
                     var paramAsteriskFlatten = [param];
+                    var noDataPafList = [];
+                    var totalPafList = paramAsteriskFlatten.concat([]);
                     var _loop_1 = function () {
                         var replacedParams = [];
-                        paramAsteriskFlatten.forEach(function (paf) {
+                        paramAsteriskFlatten
+                            .filter(function (paf) {
+                            return !noDataPafList.some(function (ndpaf) { return ndpaf === paf; });
+                        })
+                            .forEach(function (paf) {
                             var splitedPaf = paf.split('.');
                             var asteriskPosition = splitedPaf.indexOf('*');
                             if (asteriskPosition > -1) {
@@ -721,19 +727,24 @@ var Kalidator = (function () {
                                         var clone = splitedPaf.concat([]);
                                         clone.splice(asteriskPosition, 1, j.toString());
                                         replacedParams.push(clone.join('.'));
+                                        totalPafList.push(clone.join('.'));
                                     }
                                 }
                                 else {
+                                    noDataPafList.push(paf);
                                     replacedParams.push(splitedPaf.join('.'));
+                                    totalPafList.push(paf);
                                 }
                             }
                             else {
                                 replacedParams.push(paf);
+                                totalPafList.push(paf);
                             }
                         });
                         paramAsteriskFlatten = replacedParams;
                     };
-                    while (!paramAsteriskFlatten.some(function (paf) { return paf.indexOf('*') === -1; })) {
+                    while (paramAsteriskFlatten.length > 0
+                        && !paramAsteriskFlatten.some(function (paf) { return paf.indexOf('*') === -1; })) {
                         _loop_1();
                     }
                     var getFailMessage = function (paramForRow) {
@@ -778,7 +789,7 @@ var Kalidator = (function () {
                         });
                         return _this.applyZosa(message);
                     };
-                    var testPromises = paramAsteriskFlatten.map(function (paramForRow) {
+                    var testPromises = totalPafList.map(function (paramForRow) {
                         var testResult = tester(paramForRow, extraValue, _this.data);
                         var failMessage = getFailMessage(paramForRow);
                         if (testResult instanceof Promise) {

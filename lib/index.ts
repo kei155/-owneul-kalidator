@@ -1054,36 +1054,51 @@ class Kalidator {
             }
 
             // 애스터리스크 치환작업
-            let paramAsteriskFlatten = [param]
+            let paramAsteriskFlatten: any[] = [param]
+
+            const noDataPafList: any[] = []
+
+            const totalPafList: any[] = paramAsteriskFlatten.concat([])
 
             while (
               paramAsteriskFlatten.length > 0
               && !paramAsteriskFlatten.some((paf) => paf.indexOf('*') === -1)
             ) {
               const replacedParams: any[] = []
-              paramAsteriskFlatten.forEach((paf) => {
+              paramAsteriskFlatten
+              .filter(paf => {
+                return !noDataPafList.some(ndpaf => ndpaf === paf)
+              })
+              .forEach((paf) => {
                 const splitedPaf = paf.split('.')
                 const asteriskPosition = splitedPaf.indexOf('*')
                 if (asteriskPosition > -1) {
+                  // paf 안에 * 가 존재하는 분기
                   const beforeAsterisk = splitedPaf.slice(0, asteriskPosition)
                   const beforeAsteriskTargetValue = Kalidator.getTargetValue(
                     this.data,
                     beforeAsterisk.join('.'),
                   )
                   if (beforeAsteriskTargetValue !== null) {
+                    // *를 포함한 paf에 해당하는 데이터가 존재하는 분기
                     for (let j = 0; j < beforeAsteriskTargetValue.length; j++) {
                       const clone = splitedPaf.concat([])
                       clone.splice(asteriskPosition, 1, j.toString())
                       replacedParams.push(clone.join('.'))
+                      totalPafList.push(clone.join('.'))
                     }
                   } else {
+                    // *를 포함한 paf에 해당하는 데이터가 존재하지 않는 분기
+                    noDataPafList.push(paf)
                     replacedParams.push(splitedPaf.join('.'))
+                    totalPafList.push(paf)
                   }
                 } else {
+                  // paf 안에 *가 존재하지 않는 분기
                   replacedParams.push(paf)
+                  totalPafList.push(paf)
                 }
               })
-              console.log(replacedParams)
               paramAsteriskFlatten = replacedParams
             }
 
@@ -1149,7 +1164,7 @@ class Kalidator {
               return this.applyZosa(message)
             }
 
-            const testPromises = paramAsteriskFlatten.map((paramForRow) => {
+            const testPromises = totalPafList.map((paramForRow) => {
               const testResult = tester(paramForRow, extraValue, this.data)
               const failMessage = getFailMessage(paramForRow)
 
