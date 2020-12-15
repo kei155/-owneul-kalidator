@@ -1172,7 +1172,7 @@ class Kalidator {
                     paramForRow: paramForRow,
                     failMessage: failMessage,
                   })
-                })
+                }).catch(Promise.reject)
               } else {
                 return Promise.resolve({
                   isPass: testResult,
@@ -1219,11 +1219,19 @@ class Kalidator {
 
         return new Promise((resolve, reject) => {
           if (this.isPassed) {
+            if (options && options.pass && typeof options.pass === 'function') {
+              options.pass();
+            }
             resolve()
           } else {
             const firstErrorBag = this.errors[Object.keys(this.errors)[0]]
             this.firstErrorMessage =
               firstErrorBag[Object.keys(firstErrorBag)[0]]
+
+            if (options && options.fail && typeof options.fail === 'function') {
+              options.fail(this.errors, this.firstErrorMessage);
+            }
+
             reject({
               errors: this.errors,
               firstErrorMessage: this.firstErrorMessage,

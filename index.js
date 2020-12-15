@@ -755,18 +755,48 @@ var Kalidator = (function () {
                         }
                         var valueLabels = [];
                         extraValue.forEach(function (val) {
-                            valueLabels.push(_this.$keyAndLabels[val] ? _this.$keyAndLabels[val] : val);
+                            var evLabel = _this.$keyAndLabels[val];
+                            if (!evLabel) {
+                                var asteriskedKey = val.split('.').map(function (evSlice) { return isNaN(Number.parseFloat(evSlice)) ? evSlice : '*'; }).join('.');
+                                evLabel = _this.$keyAndLabels[asteriskedKey];
+                            }
+                            if (!evLabel) {
+                                evLabel = val;
+                            }
+                            valueLabels.push(evLabel);
                         });
                         message = message.replace(/:\$concat/g, "[" + valueLabels.join(', ') + "]");
                         extraValue.forEach(function (val, i) {
-                            var replaceValue = _this.$keyAndLabels[val]
-                                ? _this.$keyAndLabels[val]
-                                : val;
-                            message = message.replace(new RegExp(":\\$" + i, 'g'), replaceValue);
+                            var evLabel = _this.$keyAndLabels[val];
+                            if (!evLabel) {
+                                var asteriskedKey = val.split('.').map(function (evSlice) { return isNaN(Number.parseFloat(evSlice)) ? evSlice : '*'; }).join('.');
+                                evLabel = _this.$keyAndLabels[asteriskedKey];
+                            }
+                            if (!evLabel) {
+                                evLabel = val;
+                            }
+                            message = message.replace(new RegExp(":\\$" + i, 'g'), evLabel);
                         });
                         return _this.applyZosa(message);
                     };
                     var testPromises = totalPafList.map(function (paramForRow) {
+                        if (extraValue.some(function (ev) { return ev.indexOf('*') > -1; })) {
+                            extraValue = extraValue.map(function (ev) {
+                                var splitedPaf = paramForRow.split('.');
+                                var splitedEv = ev.split('.');
+                                var remadeEv = [];
+                                for (var index = 0; index < splitedEv.length; index++) {
+                                    var evSlice = splitedEv[index];
+                                    if (evSlice === '*' && !isNaN(splitedPaf[index])) {
+                                        remadeEv.push(splitedPaf[index]);
+                                    }
+                                    else {
+                                        remadeEv.push(evSlice);
+                                    }
+                                }
+                                return remadeEv.join('.');
+                            });
+                        }
                         var testResult = tester(paramForRow, extraValue, _this.data);
                         var failMessage = getFailMessage(paramForRow);
                         if (testResult instanceof Promise) {
@@ -777,7 +807,7 @@ var Kalidator = (function () {
                                     paramForRow: paramForRow,
                                     failMessage: failMessage,
                                 });
-                            });
+                            }).catch(Promise.reject);
                         }
                         else {
                             return Promise.resolve({
@@ -819,12 +849,18 @@ var Kalidator = (function () {
                 });
                 return new Promise(function (resolve, reject) {
                     if (_this.isPassed) {
+                        if (options && options.pass && typeof options.pass === 'function') {
+                            options.pass();
+                        }
                         resolve();
                     }
                     else {
                         var firstErrorBag = _this.errors[Object.keys(_this.errors)[0]];
                         _this.firstErrorMessage =
                             firstErrorBag[Object.keys(firstErrorBag)[0]];
+                        if (options && options.fail && typeof options.fail === 'function') {
+                            options.fail(_this.errors, _this.firstErrorMessage);
+                        }
                         reject({
                             errors: _this.errors,
                             firstErrorMessage: _this.firstErrorMessage,
