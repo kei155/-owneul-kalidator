@@ -1098,10 +1098,20 @@ class Kalidator {
               }
 
               const valueLabels: string[] = []
-              extraValue.forEach((val) => {
-                valueLabels.push(
-                  this.$keyAndLabels[val] ? this.$keyAndLabels[val] : val,
-                )
+              extraValue.forEach((val: string) => {
+                // extraValue details.0.imageUrl 식으로 넘어온 경우,
+                // details.0.imageUrl 메세지 > details.*.imageUrl 메세지 순서로 체크
+                let evLabel = this.$keyAndLabels[val];
+                if (!evLabel) {
+                  const asteriskedKey = val.split('.').map(evSlice => isNaN(Number.parseFloat(evSlice)) ? evSlice : '*').join('.')
+                  evLabel = this.$keyAndLabels[asteriskedKey]
+                }
+
+                if (!evLabel) {
+                  evLabel = val
+                }
+
+                valueLabels.push(evLabel)
               })
 
               message = message.replace(
@@ -1109,13 +1119,22 @@ class Kalidator {
                 `[${valueLabels.join(', ')}]`,
               )
 
-              extraValue.forEach((val, i) => {
-                const replaceValue = this.$keyAndLabels[val]
-                  ? this.$keyAndLabels[val]
-                  : val
+              extraValue.forEach((val: string, i: number) => {
+                // extraValue details.0.imageUrl 식으로 넘어온 경우,
+                // details.0.imageUrl 메세지 > details.*.imageUrl 메세지 순서로 체크
+                let evLabel = this.$keyAndLabels[val];
+                if (!evLabel) {
+                  const asteriskedKey = val.split('.').map(evSlice => isNaN(Number.parseFloat(evSlice)) ? evSlice : '*').join('.')
+                  evLabel = this.$keyAndLabels[asteriskedKey]
+                }
+
+                if (!evLabel) {
+                  evLabel = val
+                }
+
                 message = message.replace(
                   new RegExp(`:\\$${i}`, 'g'),
-                  replaceValue,
+                  evLabel,
                 )
               })
 
@@ -1123,6 +1142,25 @@ class Kalidator {
             }
 
             const testPromises = totalPafList.map((paramForRow) => {
+              if (extraValue.some(ev => ev.indexOf('*') > -1)) {
+                // extraValue 값이 details.*.imageUrl 처럼 애스터리스크일 수 있기때문에 
+                // paramForRow 값이 자릿수가 일치하는 숫자값인 경우 보정해줌
+                extraValue = extraValue.map(ev => {
+                  let splitedPaf = paramForRow.split('.')
+                  let splitedEv = ev.split('.')
+                  const remadeEv: any[] = []
+                  for (let index = 0; index < splitedEv.length; index++) {
+                    const evSlice = splitedEv[index]
+                    if (evSlice === '*' && !isNaN(splitedPaf[index])) {
+                      remadeEv.push(splitedPaf[index])
+                    } else {
+                      remadeEv.push(evSlice)
+                    }
+                  }
+
+                  return remadeEv.join('.');
+                })
+              }
               const testResult = tester(paramForRow, extraValue, this.data)
               const failMessage = getFailMessage(paramForRow)
 

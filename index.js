@@ -699,6 +699,7 @@ var Kalidator = (function () {
                                 var beforeAsterisk = splitedPaf.slice(0, asteriskPosition);
                                 var beforeAsteriskTargetValue = Kalidator.getTargetValue(_this.data, beforeAsterisk.join('.'));
                                 if (beforeAsteriskTargetValue !== null) {
+                                    totalPafList = totalPafList.filter(function (tpaf) { return tpaf !== paf; });
                                     for (var j = 0; j < beforeAsteriskTargetValue.length; j++) {
                                         var clone = splitedPaf.concat([]);
                                         clone.splice(asteriskPosition, 1, j.toString());
