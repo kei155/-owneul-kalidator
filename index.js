@@ -410,13 +410,7 @@ var Kalidator = (function () {
                         : extraValue;
                     var valueDate = moment_1.default(targetValue);
                     var compareDate = moment_1.default(compareValue);
-                    if (!valueDate.isValid()) {
-                        throw new InvalidValueError("\uAC80\uC0AC\uB300\uC0C1\uAC12 [" + targetValue + "]\uAC00 \uCD94\uCD9C\uAC00\uB2A5\uD55C \uB0A0\uC9DC\uAC12\uC774 \uC544\uB2D9\uB2C8\uB2E4.");
-                    }
-                    else if (!compareDate.isValid()) {
-                        throw new InvalidValueError("\uBE44\uAD50\uB300\uC0C1\uAC12 [" + compareValue + "]\uAC00 \uCD94\uCD9C\uAC00\uB2A5\uD55C \uB0A0\uC9DC\uAC12\uC774 \uC544\uB2D9\uB2C8\uB2E4.");
-                    }
-                    return valueDate.diff(compareDate) < 0;
+                    return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) < 0;
                 },
                 earlierOrEqualThan: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -430,13 +424,7 @@ var Kalidator = (function () {
                         : extraValue;
                     var valueDate = moment_1.default(targetValue);
                     var compareDate = moment_1.default(compareValue);
-                    if (!valueDate.isValid()) {
-                        throw new InvalidValueError("\uAC80\uC0AC\uB300\uC0C1\uAC12 [" + targetValue + "]\uAC00 \uCD94\uCD9C\uAC00\uB2A5\uD55C \uB0A0\uC9DC\uAC12\uC774 \uC544\uB2D9\uB2C8\uB2E4.");
-                    }
-                    else if (!compareDate.isValid()) {
-                        throw new InvalidValueError("\uBE44\uAD50\uB300\uC0C1\uAC12 [" + compareValue + "]\uAC00 \uCD94\uCD9C\uAC00\uB2A5\uD55C \uB0A0\uC9DC\uAC12\uC774 \uC544\uB2D9\uB2C8\uB2E4.");
-                    }
-                    return valueDate.diff(compareDate) <= 0;
+                    return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) <= 0;
                 },
                 laterThan: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -450,13 +438,7 @@ var Kalidator = (function () {
                         : extraValue;
                     var valueDate = moment_1.default(targetValue);
                     var compareDate = moment_1.default(compareValue);
-                    if (!valueDate.isValid()) {
-                        throw new InvalidValueError("\uAC80\uC0AC\uB300\uC0C1\uAC12 [" + targetValue + "]\uAC00 \uCD94\uCD9C\uAC00\uB2A5\uD55C \uB0A0\uC9DC\uAC12\uC774 \uC544\uB2D9\uB2C8\uB2E4.");
-                    }
-                    else if (!compareDate.isValid()) {
-                        throw new InvalidValueError("\uBE44\uAD50\uB300\uC0C1\uAC12 [" + compareValue + "]\uAC00 \uCD94\uCD9C\uAC00\uB2A5\uD55C \uB0A0\uC9DC\uAC12\uC774 \uC544\uB2D9\uB2C8\uB2E4.");
-                    }
-                    return valueDate.diff(compareDate) > 0;
+                    return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) > 0;
                 },
                 laterOrEqualThan: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -470,13 +452,7 @@ var Kalidator = (function () {
                         : extraValue;
                     var valueDate = moment_1.default(targetValue);
                     var compareDate = moment_1.default(compareValue);
-                    if (!valueDate.isValid()) {
-                        throw new InvalidValueError("\uAC80\uC0AC\uB300\uC0C1\uAC12 [" + targetValue + "]\uAC00 \uCD94\uCD9C\uAC00\uB2A5\uD55C \uB0A0\uC9DC\uAC12\uC774 \uC544\uB2D9\uB2C8\uB2E4.");
-                    }
-                    else if (!compareDate.isValid()) {
-                        throw new InvalidValueError("\uBE44\uAD50\uB300\uC0C1\uAC12 [" + compareValue + "]\uAC00 \uCD94\uCD9C\uAC00\uB2A5\uD55C \uB0A0\uC9DC\uAC12\uC774 \uC544\uB2D9\uB2C8\uB2E4.");
-                    }
-                    return valueDate.diff(compareDate) >= 0;
+                    return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) >= 0;
                 },
             },
         };

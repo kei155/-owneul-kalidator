@@ -687,18 +687,7 @@ class Kalidator {
         const valueDate = moment(targetValue)
         const compareDate = moment(compareValue)
 
-        // 검사값, 비교대상이 유효한 날짜객체가 아니면 실패처리
-        if (!valueDate.isValid()) {
-          throw new InvalidValueError(
-            `검사대상값 [${targetValue}]가 추출가능한 날짜값이 아닙니다.`,
-          )
-        } else if (!compareDate.isValid()) {
-          throw new InvalidValueError(
-            `비교대상값 [${compareValue}]가 추출가능한 날짜값이 아닙니다.`,
-          )
-        }
-
-        return valueDate.diff(compareDate) < 0
+        return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) < 0
       },
       // 주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터와 같거나 빠른 날짜여야 한다
       earlierOrEqualThan: (key, extraValue = [], data = {}): boolean => {
@@ -716,18 +705,7 @@ class Kalidator {
         const valueDate = moment(targetValue)
         const compareDate = moment(compareValue)
 
-        // 검사값, 비교대상이 유효한 날짜객체가 아니면 실패처리
-        if (!valueDate.isValid()) {
-          throw new InvalidValueError(
-            `검사대상값 [${targetValue}]가 추출가능한 날짜값이 아닙니다.`,
-          )
-        } else if (!compareDate.isValid()) {
-          throw new InvalidValueError(
-            `비교대상값 [${compareValue}]가 추출가능한 날짜값이 아닙니다.`,
-          )
-        }
-
-        return valueDate.diff(compareDate) <= 0
+        return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) <= 0
       },
 
       // 주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터보다 늦은 날짜여야 한다
@@ -746,18 +724,7 @@ class Kalidator {
         const valueDate = moment(targetValue)
         const compareDate = moment(compareValue)
 
-        // 검사값, 비교대상이 유효한 날짜객체가 아니면 실패처리
-        if (!valueDate.isValid()) {
-          throw new InvalidValueError(
-            `검사대상값 [${targetValue}]가 추출가능한 날짜값이 아닙니다.`,
-          )
-        } else if (!compareDate.isValid()) {
-          throw new InvalidValueError(
-            `비교대상값 [${compareValue}]가 추출가능한 날짜값이 아닙니다.`,
-          )
-        }
-
-        return valueDate.diff(compareDate) > 0
+        return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) > 0
       },
 
       // 주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터와 같거나 늦은 날짜여야 한다
@@ -776,18 +743,7 @@ class Kalidator {
         const valueDate = moment(targetValue)
         const compareDate = moment(compareValue)
 
-        // 검사값, 비교대상이 유효한 날짜객체가 아니면 실패처리
-        if (!valueDate.isValid()) {
-          throw new InvalidValueError(
-            `검사대상값 [${targetValue}]가 추출가능한 날짜값이 아닙니다.`,
-          )
-        } else if (!compareDate.isValid()) {
-          throw new InvalidValueError(
-            `비교대상값 [${compareValue}]가 추출가능한 날짜값이 아닙니다.`,
-          )
-        }
-
-        return valueDate.diff(compareDate) >= 0
+        return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) >= 0
       },
       // [END] date validate section
     },
