@@ -1014,7 +1014,7 @@ class Kalidator {
 
             const noDataPafList: any[] = []
 
-            const totalPafList: any[] = paramAsteriskFlatten.concat([])
+            let totalPafList: any[] = paramAsteriskFlatten.concat([])
 
             while (
               paramAsteriskFlatten.length > 0
@@ -1037,6 +1037,8 @@ class Kalidator {
                   )
                   if (beforeAsteriskTargetValue !== null) {
                     // *를 포함한 paf에 해당하는 데이터가 존재하는 분기
+                    // 기존 totalPafList 목록에서 asterisk 항목을 제거해줌
+                    totalPafList = totalPafList.filter(tpaf => tpaf !== paf)
                     for (let j = 0; j < beforeAsteriskTargetValue.length; j++) {
                       const clone = splitedPaf.concat([])
                       clone.splice(asteriskPosition, 1, j.toString())
