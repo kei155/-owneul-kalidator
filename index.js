@@ -290,7 +290,7 @@ var Kalidator = (function () {
                     }
                     var extraValueArray = extraValue.filter(function (ev) { return ev !== undefined && ev !== null; });
                     var targetValue = Kalidator.getTargetValue(data, key);
-                    return extraValueArray.indexOf(targetValue) !== -1;
+                    return extraValueArray.indexOf(targetValue.toString()) !== -1;
                 },
                 notIn: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -300,7 +300,7 @@ var Kalidator = (function () {
                     }
                     var extraValueArray = extraValue.filter(function (ev) { return ev !== undefined && ev !== null; });
                     var targetValue = Kalidator.getTargetValue(data, key);
-                    return extraValueArray.indexOf(targetValue) === -1;
+                    return extraValueArray.indexOf(targetValue.toString()) === -1;
                 },
                 empty: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }

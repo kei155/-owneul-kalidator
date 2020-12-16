@@ -528,7 +528,7 @@ class Kalidator {
         )
         const targetValue = Kalidator.getTargetValue(data, key)
 
-        return extraValueArray.indexOf(targetValue) !== -1
+        return extraValueArray.indexOf(targetValue.toString()) !== -1
       },
 
       // 주어진 값들 중에 존재하지 않아야 한다
@@ -543,7 +543,7 @@ class Kalidator {
         )
         const targetValue = Kalidator.getTargetValue(data, key)
 
-        return extraValueArray.indexOf(targetValue) === -1
+        return extraValueArray.indexOf(targetValue.toString()) === -1
       },
 
       // 비어있는 값이어야 한다
