@@ -23,7 +23,7 @@ if (!Array.prototype.forEach) {
         }
         var O = Object(this);
         var len = O.length >>> 0;
-        if (typeof callback !== "function") {
+        if (typeof callback !== 'function') {
             throw new TypeError(callback + ' is not a function');
         }
         if (arguments.length > 1) {
@@ -69,7 +69,8 @@ var is = {
         var isEmpty = __target === undefined ||
             __target === null ||
             (!isNaN(__target.length) && __target.length === 0) ||
-            (__target instanceof FileList && __target.length === 0);
+            (__target instanceof FileList && __target.length === 0) ||
+            (__target instanceof File && __target.size === 0);
         return isEmpty;
     },
     number: function (__target) {
@@ -116,6 +117,7 @@ var Kalidator = (function () {
         this.$unlabeledRules = {};
         this.$keyAndLabels = {};
         this.$requiredKeys = [];
+        this.$excludeKeys = [];
         this.$customTester = {};
         this.$customMessages = {};
         this.errors = {};
@@ -126,6 +128,7 @@ var Kalidator = (function () {
             messages: {
                 required: ':param(은/는) 필수입력사항입니다.',
                 requiredIf: '[:$0] 값이 있는 경우 :param(은/는) 필수입력사항입니다.',
+                requiredAtLeast: ':param, :$concat 중 최소 하나의 값은 존재해야합니다.',
                 minLength: ':param(은/는) 최소 :$0자를 입력해야합니다.',
                 maxLength: ':param(은/는) 최대 :$0자까지 입력할 수 있습니다.',
                 betweenLength: ':param(은/는) :$0자 ~ :$1자 사이에서 입력할 수 있습니다.',
@@ -139,6 +142,7 @@ var Kalidator = (function () {
                 number: ':param의 값은 숫자여야합니다.',
                 email: ':param의 값은 유효한 이메일 주소여야합니다.',
                 date: ':param의 값은 날짜여야합니다.',
+                dateFormat: ':param(을/를) :$0 형식으로 설정해주세요.',
                 file: ':param 파일이 정상적으로 첨부되지 않았습니다.',
                 earlierThan: ':param(은/는) :$0보다 이른 날짜여야합니다.',
                 earlierOrEqualThan: ':param(은/는) :$0과 같거나 :$0보다 이른 날짜여야합니다.',
@@ -156,6 +160,9 @@ var Kalidator = (function () {
                     if (data === void 0) { data = {}; }
                     var whitelist = extraValue.slice(1);
                     var targetValue = Kalidator.getTargetValue(data, extraValue[0]);
+                    if (targetValue === false) {
+                        return true;
+                    }
                     if (!_this.$is.empty(targetValue)) {
                         if (whitelist.length === 0 || whitelist.indexOf(targetValue) !== -1) {
                             return !_this.$is.empty(Kalidator.getTargetValue(data, key));
@@ -184,6 +191,42 @@ var Kalidator = (function () {
                         return true;
                     }
                 },
+                requiredAtLeast: function (key, extraValue, data) {
+                    if (extraValue === void 0) { extraValue = []; }
+                    if (data === void 0) { data = {}; }
+                    return ([Kalidator.getTargetValue(data, key)]
+                        .concat(extraValue.map(function (evKey) { return Kalidator.getTargetValue(data, evKey); }))
+                        .filter(function (targetValue) { return !_this.$is.empty(targetValue); }).length > 0);
+                },
+                excludeIf: function (key, extraValue, data) {
+                    if (extraValue === void 0) { extraValue = []; }
+                    if (data === void 0) { data = {}; }
+                    var whitelist = extraValue.slice(1);
+                    var targetValue = Kalidator.getTargetValue(data, extraValue[0]);
+                    if (targetValue === false) {
+                        return true;
+                    }
+                    if (!_this.$is.empty(targetValue)) {
+                        if (whitelist.length === 0 || whitelist.indexOf(targetValue) !== -1) {
+                            _this.$excludeKeys.push(key);
+                        }
+                    }
+                    return true;
+                },
+                excludeUnless: function (key, extraValue, data) {
+                    if (extraValue === void 0) { extraValue = []; }
+                    if (data === void 0) { data = {}; }
+                    var blacklist = extraValue.slice(1);
+                    var targetValue = Kalidator.getTargetValue(data, extraValue[0]);
+                    if (!targetValue) {
+                        _this.$excludeKeys.push(key);
+                    }
+                    else if (targetValue !== null &&
+                        blacklist.indexOf(targetValue) !== -1) {
+                        _this.$excludeKeys.push(key);
+                    }
+                    return true;
+                },
                 minLength: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
                     if (data === void 0) { data = {}; }
@@ -191,6 +234,9 @@ var Kalidator = (function () {
                         return true;
                     }
                     var minLength = extraValue[0];
+                    if (isNaN(Number.parseFloat(minLength))) {
+                        minLength = Kalidator.getTargetValue(data, extraValue[0]);
+                    }
                     if (isNaN(Number.parseInt(minLength))) {
                         throw new InvalidRuleError("\uAE38\uC774\uAC12 [" + minLength + "]\uB294 \uC22B\uC790\uB85C \uBCC0\uD658\uD560 \uC218 \uC5C6\uB294 \uAC12\uC785\uB2C8\uB2E4.");
                     }
@@ -210,6 +256,9 @@ var Kalidator = (function () {
                         return true;
                     }
                     var maxLength = extraValue[0];
+                    if (isNaN(Number.parseFloat(maxLength))) {
+                        maxLength = Kalidator.getTargetValue(data, extraValue[0]);
+                    }
                     if (isNaN(Number.parseInt(maxLength))) {
                         throw new InvalidRuleError("\uAE38\uC774\uAC12 [" + maxLength + "]\uB294 \uC22B\uC790\uB85C \uBCC0\uD658\uD560 \uC218 \uC5C6\uB294 \uAC12\uC785\uB2C8\uB2E4.");
                     }
@@ -246,11 +295,15 @@ var Kalidator = (function () {
                         return true;
                     }
                     var minValue = extraValue[0];
-                    if (isNaN(Number.parseInt(minValue))) {
+                    if (isNaN(Number.parseFloat(minValue))) {
+                        minValue = Kalidator.getTargetValue(data, extraValue[0]);
+                    }
+                    if (isNaN(Number.parseFloat(minValue))) {
                         throw new InvalidRuleError("\uCD5C\uC18C \uC870\uAC74\uAC12 [" + minValue + "]\uB294 \uC22B\uC790\uB85C \uBCC0\uD658\uD560 \uC218 \uC5C6\uB294 \uAC12\uC785\uB2C8\uB2E4.");
                     }
                     var targetValue = Kalidator.getTargetValue(data, key);
-                    return is.number(targetValue) && targetValue * 1 >= minValue;
+                    return (is.number(targetValue) &&
+                        Number.parseFloat(targetValue) >= Number.parseFloat(minValue));
                 },
                 maxValue: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -259,11 +312,15 @@ var Kalidator = (function () {
                         return true;
                     }
                     var maxValue = extraValue[0];
-                    if (isNaN(Number.parseInt(maxValue))) {
+                    if (isNaN(Number.parseFloat(maxValue))) {
+                        maxValue = Kalidator.getTargetValue(data, extraValue[0]);
+                    }
+                    if (isNaN(Number.parseFloat(maxValue))) {
                         throw new InvalidRuleError("\uCD5C\uB300 \uC870\uAC74\uAC12 [" + extraValue + "]\uB294 \uC22B\uC790\uB85C \uBCC0\uD658\uD560 \uC218 \uC5C6\uB294 \uAC12\uC785\uB2C8\uB2E4.");
                     }
                     var targetValue = Kalidator.getTargetValue(data, key);
-                    return is.number(targetValue) && targetValue * 1 <= maxValue;
+                    return (is.number(targetValue) &&
+                        Number.parseFloat(targetValue) <= Number.parseFloat(maxValue));
                 },
                 betweenValue: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -273,14 +330,14 @@ var Kalidator = (function () {
                     }
                     var minValue = extraValue[0];
                     var maxValue = extraValue[1];
-                    if (isNaN(Number.parseInt(minValue))) {
+                    if (isNaN(Number.parseFloat(minValue))) {
                         throw new InvalidRuleError("\uCD5C\uC18C \uC870\uAC74\uAC12 [" + minValue + "]\uB294 \uC22B\uC790\uB85C \uBCC0\uD658\uD560 \uC218 \uC5C6\uB294 \uAC12\uC785\uB2C8\uB2E4.");
                     }
-                    else if (isNaN(Number.parseInt(maxValue))) {
+                    else if (isNaN(Number.parseFloat(maxValue))) {
                         throw new InvalidRuleError("\uCD5C\uB300 \uC870\uAC74\uAC12 [" + maxValue + "]\uB294 \uC22B\uC790\uB85C \uBCC0\uD658\uD560 \uC218 \uC5C6\uB294 \uAC12\uC785\uB2C8\uB2E4.");
                     }
-                    return (_this.$defaults.testers.minValue(key, minValue, data) &&
-                        _this.$defaults.testers.maxValue(key, maxValue, data));
+                    return (_this.$defaults.testers.minValue(key, [minValue], data) &&
+                        _this.$defaults.testers.maxValue(key, [maxValue], data));
                 },
                 in: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -290,7 +347,7 @@ var Kalidator = (function () {
                     }
                     var extraValueArray = extraValue.filter(function (ev) { return ev !== undefined && ev !== null; });
                     var targetValue = Kalidator.getTargetValue(data, key);
-                    return extraValueArray.indexOf(targetValue.toString()) !== -1;
+                    return extraValueArray.indexOf((targetValue || '').toString()) !== -1;
                 },
                 notIn: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -300,7 +357,7 @@ var Kalidator = (function () {
                     }
                     var extraValueArray = extraValue.filter(function (ev) { return ev !== undefined && ev !== null; });
                     var targetValue = Kalidator.getTargetValue(data, key);
-                    return extraValueArray.indexOf(targetValue.toString()) === -1;
+                    return extraValueArray.indexOf((targetValue || '').toString()) === -1;
                 },
                 empty: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -353,7 +410,7 @@ var Kalidator = (function () {
                     }
                     var targetValue = Kalidator.getTargetValue(data, key);
                     if (typeof targetValue !== 'string') {
-                        throw new InvalidValueError("\uC804\uB2EC\uB41C \uAC12 [" + targetValue + "]\uC774 \uBB38\uC790\uC5F4\uC774 \uC544\uB2D9\uB2C8\uB2E4.");
+                        return false;
                     }
                     return (targetValue.match(/@/g) !== null &&
                         (targetValue.match(/@/g) || []).length === 1 &&
@@ -369,6 +426,21 @@ var Kalidator = (function () {
                     var targetValue = Kalidator.getTargetValue(data, key);
                     try {
                         return moment_1.default(targetValue).isValid();
+                    }
+                    catch (error) {
+                        return false;
+                    }
+                },
+                dateFormat: function (key, extraValue, data) {
+                    if (extraValue === void 0) { extraValue = []; }
+                    if (data === void 0) { data = {}; }
+                    if (_this.__isTestNotRequired('dateFormat', key)) {
+                        return true;
+                    }
+                    var targetValue = Kalidator.getTargetValue(data, key);
+                    var formatString = extraValue[0];
+                    try {
+                        return targetValue == moment_1.default(targetValue).format(formatString);
                     }
                     catch (error) {
                         return false;
@@ -407,10 +479,12 @@ var Kalidator = (function () {
                     var targetValue = Kalidator.getTargetValue(data, key);
                     var compareValue = Kalidator.getTargetValue(data, extraValue[0]) !== null
                         ? Kalidator.getTargetValue(data, extraValue[0])
-                        : extraValue;
+                        : extraValue[0];
                     var valueDate = moment_1.default(targetValue);
                     var compareDate = moment_1.default(compareValue);
-                    return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) < 0;
+                    return (valueDate.isValid() &&
+                        compareDate.isValid() &&
+                        valueDate.diff(compareDate) < 0);
                 },
                 earlierOrEqualThan: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -421,10 +495,12 @@ var Kalidator = (function () {
                     var targetValue = Kalidator.getTargetValue(data, key);
                     var compareValue = Kalidator.getTargetValue(data, extraValue[0]) !== null
                         ? Kalidator.getTargetValue(data, extraValue[0])
-                        : extraValue;
+                        : extraValue[0];
                     var valueDate = moment_1.default(targetValue);
                     var compareDate = moment_1.default(compareValue);
-                    return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) <= 0;
+                    return (valueDate.isValid() &&
+                        compareDate.isValid() &&
+                        valueDate.diff(compareDate) <= 0);
                 },
                 laterThan: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -435,10 +511,12 @@ var Kalidator = (function () {
                     var targetValue = Kalidator.getTargetValue(data, key);
                     var compareValue = Kalidator.getTargetValue(data, extraValue[0]) !== null
                         ? Kalidator.getTargetValue(data, extraValue[0])
-                        : extraValue;
+                        : extraValue[0];
                     var valueDate = moment_1.default(targetValue);
                     var compareDate = moment_1.default(compareValue);
-                    return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) > 0;
+                    return (valueDate.isValid() &&
+                        compareDate.isValid() &&
+                        valueDate.diff(compareDate) > 0);
                 },
                 laterOrEqualThan: function (key, extraValue, data) {
                     if (extraValue === void 0) { extraValue = []; }
@@ -449,14 +527,20 @@ var Kalidator = (function () {
                     var targetValue = Kalidator.getTargetValue(data, key);
                     var compareValue = Kalidator.getTargetValue(data, extraValue[0]) !== null
                         ? Kalidator.getTargetValue(data, extraValue[0])
-                        : extraValue;
+                        : extraValue[0];
                     var valueDate = moment_1.default(targetValue);
                     var compareDate = moment_1.default(compareValue);
-                    return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) >= 0;
+                    return (valueDate.isValid() &&
+                        compareDate.isValid() &&
+                        valueDate.diff(compareDate) >= 0);
                 },
             },
         };
-        this.$conditionalRequiredRules = ['requiredIf', 'requiredNotIf'];
+        this.$conditionalRequiredRules = [
+            'requiredIf',
+            'requiredNotIf',
+            'requiredAtLeast',
+        ];
         this.setData(data);
         this.setRules(rules);
         this.setMessages(messages);
@@ -533,15 +617,7 @@ var Kalidator = (function () {
         this.data = {};
         if (data instanceof FormData) {
             data.forEach(function (value, key) {
-                if (_this.data[key] && Array.isArray(_this.data[key])) {
-                    _this.data[key].push(value);
-                }
-                else if (_this.data[key] && !Array.isArray(_this.data[key])) {
-                    _this.data[key] = [_this.data[key], value];
-                }
-                else {
-                    _this.data[key] = value;
-                }
+                _this.setValueByHtmlKey(key, value);
             });
         }
         else if (data instanceof HTMLElement) {
@@ -553,31 +629,31 @@ var Kalidator = (function () {
                 if (input instanceof HTMLInputElement) {
                     if (type == 'radio') {
                         if (input.checked) {
-                            this.data[name_1] = input.value;
+                            this.setValueByHtmlKey(name_1, input.value);
                         }
                     }
                     else if (type == 'checkbox') {
                         if (input.checked) {
-                            this.data[name_1] = input.value;
+                            this.setValueByHtmlKey(name_1, input.value);
                         }
                     }
                     else if (type == 'file') {
                         if (input.files && input.files.length === 1) {
-                            this.data[name_1] = input.files[0];
+                            this.setValueByHtmlKey(name_1, input.files[0]);
                         }
                         else if (input.files && input.files.length > 1) {
-                            this.data[name_1] = input.files;
+                            this.setValueByHtmlKey(name_1, input.files);
                         }
                         else {
-                            this.data[name_1] = null;
+                            this.setValueByHtmlKey(name_1, null);
                         }
                     }
                     else {
-                        this.data[name_1] = input.value;
+                        this.setValueByHtmlKey(name_1, input.value);
                     }
                 }
                 else if (input instanceof HTMLSelectElement) {
-                    var selectedOptions = input.selectedOptions;
+                    var selectedOptions = input.querySelectorAll('option:checked');
                     if (selectedOptions.length > 1) {
                         this.data[name_1] = [];
                         for (var index_1 = 0; index_1 < selectedOptions.length; index_1++) {
@@ -585,8 +661,11 @@ var Kalidator = (function () {
                         }
                     }
                     else if (selectedOptions.length == 1) {
-                        this.data[name_1] = selectedOptions[0].value;
+                        this.setValueByHtmlKey(name_1, selectedOptions[0].value);
                     }
+                }
+                else if (input instanceof HTMLTextAreaElement) {
+                    this.setValueByHtmlKey(name_1, input.value);
                 }
             }
         }
@@ -594,11 +673,46 @@ var Kalidator = (function () {
             for (var key in data) {
                 if (data.hasOwnProperty(key)) {
                     var value = data[key];
-                    this.data[key] = value;
+                    this.setValueByHtmlKey(key, value);
                 }
             }
         }
         return this;
+    };
+    Kalidator.prototype.setValueByHtmlKey = function (key, value) {
+        var dottedKey = key.replace(/\[([^\]]{1,})\]/g, '.$1');
+        var splittedKeyList = dottedKey.split('.');
+        var targetValue = this.data;
+        for (var index = 0; index < splittedKeyList.length; index++) {
+            var isLast = splittedKeyList.length === index + 1;
+            var splittedKey = splittedKeyList[index];
+            var setToArray = /\[\]$/.test(splittedKey);
+            var isBeforeWasArray = Array.isArray(targetValue);
+            var replacedKey = splittedKey.replace(/\[\]$/, '');
+            var isNextNumericKey = !isNaN(Number.parseInt(splittedKeyList[index + 1]));
+            if (!targetValue[replacedKey]) {
+                if (isLast) {
+                    if (setToArray) {
+                        targetValue[replacedKey] = [value];
+                    }
+                    else {
+                        targetValue[replacedKey] = value;
+                    }
+                }
+                else {
+                    if (setToArray || isNextNumericKey) {
+                        targetValue[replacedKey] = [];
+                    }
+                    else {
+                        targetValue[replacedKey] = {};
+                    }
+                }
+            }
+            else if (Array.isArray(targetValue[replacedKey]) && isLast) {
+                targetValue[replacedKey].push(value);
+            }
+            targetValue = targetValue[replacedKey];
+        }
     };
     Kalidator.prototype.setRules = function (paramAndRules) {
         this.$rules = {};
@@ -720,8 +834,8 @@ var Kalidator = (function () {
                         });
                         paramAsteriskFlatten = replacedParams;
                     };
-                    while (paramAsteriskFlatten.length > 0
-                        && !paramAsteriskFlatten.some(function (paf) { return paf.indexOf('*') === -1; })) {
+                    while (paramAsteriskFlatten.length > 0 &&
+                        !paramAsteriskFlatten.some(function (paf) { return paf.indexOf('*') === -1; })) {
                         _loop_1();
                     }
                     var getFailMessage = function (paramForRow) {
@@ -757,7 +871,12 @@ var Kalidator = (function () {
                         extraValue.forEach(function (val) {
                             var evLabel = _this.$keyAndLabels[val];
                             if (!evLabel) {
-                                var asteriskedKey = val.split('.').map(function (evSlice) { return isNaN(Number.parseFloat(evSlice)) ? evSlice : '*'; }).join('.');
+                                var asteriskedKey = val
+                                    .split('.')
+                                    .map(function (evSlice) {
+                                    return isNaN(Number.parseFloat(evSlice)) ? evSlice : '*';
+                                })
+                                    .join('.');
                                 evLabel = _this.$keyAndLabels[asteriskedKey];
                             }
                             if (!evLabel) {
@@ -769,7 +888,12 @@ var Kalidator = (function () {
                         extraValue.forEach(function (val, i) {
                             var evLabel = _this.$keyAndLabels[val];
                             if (!evLabel) {
-                                var asteriskedKey = val.split('.').map(function (evSlice) { return isNaN(Number.parseFloat(evSlice)) ? evSlice : '*'; }).join('.');
+                                var asteriskedKey = val
+                                    .split('.')
+                                    .map(function (evSlice) {
+                                    return isNaN(Number.parseFloat(evSlice)) ? evSlice : '*';
+                                })
+                                    .join('.');
                                 evLabel = _this.$keyAndLabels[asteriskedKey];
                             }
                             if (!evLabel) {
@@ -780,8 +904,9 @@ var Kalidator = (function () {
                         return _this.applyZosa(message);
                     };
                     var testPromises = totalPafList.map(function (paramForRow) {
+                        var remadeExtraValue = extraValue.concat([]);
                         if (extraValue.some(function (ev) { return ev.indexOf('*') > -1; })) {
-                            extraValue = extraValue.map(function (ev) {
+                            remadeExtraValue = extraValue.map(function (ev) {
                                 var splitedPaf = paramForRow.split('.');
                                 var splitedEv = ev.split('.');
                                 var remadeEv = [];
@@ -797,17 +922,31 @@ var Kalidator = (function () {
                                 return remadeEv.join('.');
                             });
                         }
-                        var testResult = tester(paramForRow, extraValue, _this.data);
                         var failMessage = getFailMessage(paramForRow);
+                        var testResult = false;
+                        if (_this.$excludeKeys.indexOf(paramForRow) > -1) {
+                            testResult = Promise.resolve(true);
+                        }
+                        else {
+                            try {
+                                testResult = tester(paramForRow, remadeExtraValue, _this.data);
+                            }
+                            catch (error) {
+                                testResult = false;
+                                failMessage = error.message;
+                            }
+                        }
                         if (testResult instanceof Promise) {
-                            return testResult.then(function (result) {
+                            return testResult
+                                .then(function (result) {
                                 return Promise.resolve({
                                     isPass: result,
                                     testerName: testerName,
                                     paramForRow: paramForRow,
                                     failMessage: failMessage,
                                 });
-                            }).catch(Promise.reject);
+                            })
+                                .catch(Promise.reject);
                         }
                         else {
                             return Promise.resolve({
@@ -852,12 +991,32 @@ var Kalidator = (function () {
                         if (options && options.pass && typeof options.pass === 'function') {
                             options.pass();
                         }
-                        resolve();
+                        resolve(_this.data);
                     }
                     else {
-                        var firstErrorBag = _this.errors[Object.keys(_this.errors)[0]];
-                        _this.firstErrorMessage =
-                            firstErrorBag[Object.keys(firstErrorBag)[0]];
+                        var errorKeys = Object.keys(_this.errors);
+                        var firstErrorParamName = errorKeys[0];
+                        var checkName = firstErrorParamName;
+                        var loopCount = 0;
+                        while (checkName.match(/\.[1-9]*\./) && loopCount < 1000) {
+                            var match = checkName.match(/\.([1-9]*)\./);
+                            var seq = Number.parseInt(match[1]);
+                            var paramToBeforeSeq = checkName.slice(0, match.index || 0);
+                            for (var index = 0; index < seq; index++) {
+                                for (var keyIndex = 0; keyIndex < errorKeys.length; keyIndex++) {
+                                    var errorKey = errorKeys[keyIndex];
+                                    if (errorKey.startsWith(paramToBeforeSeq + '.' + index)) {
+                                        firstErrorParamName = errorKey;
+                                        break;
+                                    }
+                                }
+                            }
+                            checkName = checkName.replace(/\.([1-9]*)\./, '.' + (seq - 1) + '.');
+                            loopCount++;
+                        }
+                        var firstErrorBag = _this.errors[firstErrorParamName];
+                        var firstErrorRuleName = Object.keys(firstErrorBag)[0];
+                        _this.firstErrorMessage = firstErrorBag[firstErrorRuleName];
                         if (options && options.fail && typeof options.fail === 'function') {
                             options.fail(_this.errors, _this.firstErrorMessage);
                         }

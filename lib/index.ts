@@ -2,58 +2,58 @@
 // 참고: http://es5.github.io/#x15.4.4.18
 if (!Array.prototype.forEach) {
   Array.prototype.forEach = function (callback, thisArg) {
-      let T, k;
-      if (this === null) {
-          throw new TypeError(' this is null or not defined');
+    let T, k
+    if (this === null) {
+      throw new TypeError(' this is null or not defined')
+    }
+
+    // 1. O를 인수로서 |this| 값을 전달한
+    // toObject() 호출의 결과이게 함.
+    const O = Object(this)
+
+    // 2. lenValue를 "length" 인수가 있는 O의 Get()
+    // 내부 메소드 호출의 결과이게 함.
+    // 3. len을 toUint32(lenValue)이게 함.
+    const len = O.length >>> 0
+
+    // 4. isCallable(callback)이 false인 경우, TypeError 예외 발생.
+    // 참조: http://es5.github.com/#x9.11
+    if (typeof callback !== 'function') {
+      throw new TypeError(callback + ' is not a function')
+    }
+
+    // 5. thisArg가 공급됐다면, T를 thisArg이게 함;
+    // 아니면 T를 undefined이게 함.
+    if (arguments.length > 1) {
+      T = thisArg
+    }
+
+    // 6. k를 0이게 함
+    k = 0
+
+    // 7. 반복, k < len일 동안
+    while (k < len) {
+      let kValue
+      // a. Pk를 ToString(k)이게 함.
+      //    이는 in 연산자의 좌변(LHS) 피연산자에 대한 묵시(implicit)임
+      // b. kPresent를 Pk 인수가 있는 O의 HasProperty
+      //    내부 메소드 호출의 결과이게 함.
+      //    이 과정은 c와 결합될 수 있음
+      // c. kPresent가 true인 경우, 그러면
+      if (k in O) {
+        // i. kValue를 인수 Pk가 있는 O의 Get 내부
+        // 메소드 호출의 결과이게 함.
+        kValue = O[k]
+
+        // ii. this 값으로 T 그리고 kValue, k 및 O을 포함하는
+        // 인수 목록과 함께 callback의 call 내부 메소드 호출.
+        callback.call(T, kValue, k, O)
       }
-
-      // 1. O를 인수로서 |this| 값을 전달한
-      // toObject() 호출의 결과이게 함.
-      const O = Object(this);
-
-      // 2. lenValue를 "length" 인수가 있는 O의 Get()
-      // 내부 메소드 호출의 결과이게 함.
-      // 3. len을 toUint32(lenValue)이게 함.
-      const len = O.length >>> 0;
-
-      // 4. isCallable(callback)이 false인 경우, TypeError 예외 발생.
-      // 참조: http://es5.github.com/#x9.11
-      if (typeof callback !== "function") {
-          throw new TypeError(callback + ' is not a function');
-      }
-
-      // 5. thisArg가 공급됐다면, T를 thisArg이게 함;
-      // 아니면 T를 undefined이게 함.
-      if (arguments.length > 1) {
-          T = thisArg;
-      }
-
-      // 6. k를 0이게 함
-      k = 0;
-
-      // 7. 반복, k < len일 동안
-      while (k < len) {
-          let kValue;
-          // a. Pk를 ToString(k)이게 함.
-          //    이는 in 연산자의 좌변(LHS) 피연산자에 대한 묵시(implicit)임
-          // b. kPresent를 Pk 인수가 있는 O의 HasProperty
-          //    내부 메소드 호출의 결과이게 함.
-          //    이 과정은 c와 결합될 수 있음
-          // c. kPresent가 true인 경우, 그러면
-          if (k in O) {
-              // i. kValue를 인수 Pk가 있는 O의 Get 내부
-              // 메소드 호출의 결과이게 함.
-              kValue = O[k];
-
-              // ii. this 값으로 T 그리고 kValue, k 및 O을 포함하는
-              // 인수 목록과 함께 callback의 call 내부 메소드 호출.
-              callback.call(T, kValue, k, O);
-          }
-          // d. k를 1씩 증가.
-          k++;
-      }
-      // 8. undefined 반환
-  };
+      // d. k를 1씩 증가.
+      k++
+    }
+    // 8. undefined 반환
+  }
 }
 require('formdata-polyfill')
 require('weakmap-polyfill')
@@ -130,7 +130,8 @@ const is = {
       __target === undefined ||
       __target === null ||
       (!isNaN(__target.length) && __target.length === 0) ||
-      (__target instanceof FileList && __target.length === 0)
+      (__target instanceof FileList && __target.length === 0) ||
+      (__target instanceof File && __target.size === 0)
 
     return isEmpty
   },
@@ -256,6 +257,9 @@ class Kalidator {
   // 필수요소 키 목록
   private $requiredKeys: Array<string> = []
 
+  // 조건부 제외요소 키 목록
+  private $excludeKeys: Array<string> = []
+
   // 커스텀 정의 테스터
   private $customTester: Testers = {}
 
@@ -279,6 +283,7 @@ class Kalidator {
     messages: {
       required: ':param(은/는) 필수입력사항입니다.',
       requiredIf: '[:$0] 값이 있는 경우 :param(은/는) 필수입력사항입니다.',
+      requiredAtLeast: ':param, :$concat 중 최소 하나의 값은 존재해야합니다.',
 
       minLength: ':param(은/는) 최소 :$0자를 입력해야합니다.',
       maxLength: ':param(은/는) 최대 :$0자까지 입력할 수 있습니다.',
@@ -297,6 +302,7 @@ class Kalidator {
       number: ':param의 값은 숫자여야합니다.',
       email: ':param의 값은 유효한 이메일 주소여야합니다.',
       date: ':param의 값은 날짜여야합니다.',
+      dateFormat: ':param(을/를) :$0 형식으로 설정해주세요.',
       file: ':param 파일이 정상적으로 첨부되지 않았습니다.',
 
       earlierThan: ':param(은/는) :$0보다 이른 날짜여야합니다.',
@@ -318,6 +324,11 @@ class Kalidator {
         // requiredIf:subject,math,music -> subject가 수학 또는 음악이라면 필수
         const whitelist = extraValue.slice(1)
         let targetValue = Kalidator.getTargetValue(data, extraValue[0])
+
+        // 목표값이 false 값이라면 바로 통과
+        if (targetValue === false) {
+          return true
+        }
 
         // 목표값(예시에서 subject값)이 존재한다면
         if (!this.$is.empty(targetValue)) {
@@ -357,6 +368,64 @@ class Kalidator {
         }
       },
 
+      // key 포함, extraValue에 지정된 키들 중 최소 하나는 값이 존재해야한다
+      requiredAtLeast: (key: string, extraValue = [], data = {}): boolean => {
+        // requiredAtLeast:subject,teacher,student -> 과목, 교사, 학생 중 최소 하나는 필수
+        return (
+          [Kalidator.getTargetValue(data, key)]
+            .concat(
+              extraValue.map((evKey) => Kalidator.getTargetValue(data, evKey)),
+            )
+            .filter((targetValue) => !this.$is.empty(targetValue)).length > 0
+        )
+      },
+
+      // 데이터 내에 extraValues 키의 값이 존재하면 key의 남은 테스트는 진행하지 않는다
+      excludeIf: (key: string, extraValue = [], data = {}): boolean => {
+        // excludeIf:subject -> subject가 존재한다면 나머지 검사 패스
+        // excludeIf:subject,math,music -> subject가 수학 또는 음악이라면 나머지 검사 패스
+        const whitelist = extraValue.slice(1)
+        let targetValue = Kalidator.getTargetValue(data, extraValue[0])
+
+        // 목표값이 false 값이라면 바로 통과
+        if (targetValue === false) {
+          return true
+        }
+
+        // 목표값(예시에서 subject값)이 존재한다면
+        if (!this.$is.empty(targetValue)) {
+          // 화이트리스트가 전달되었다면 subject 값이 화이트리스트 중에 하나일 때 검사
+          if (whitelist.length === 0 || whitelist.indexOf(targetValue) !== -1) {
+            // do exclude
+            this.$excludeKeys.push(key)
+          }
+        }
+
+        return true
+      },
+
+      // 데이터 내에 extraValues 키의 값이 존재하지 않거나 블랙리스트 대상이면 key의 남은 테스트는 진행하지 않는다
+      excludeUnless: (key: string, extraValue = [], data = {}): boolean => {
+        // excludeUnless:subject -> subject가 존재하지 않으면 나머지 검사 패스
+        // excludeUnless:subject,math,music -> subject가 존재하지 않거나 존재해도 수학 또는 음악이라면 나머지 검사 패스
+        const blacklist = extraValue.slice(1)
+        let targetValue = Kalidator.getTargetValue(data, extraValue[0])
+
+        // 목표값(예시에서는 subject값)이 없다면
+        if (!targetValue) {
+          // key 값 존재여부 체크
+          this.$excludeKeys.push(key)
+        } else if (
+          targetValue !== null &&
+          blacklist.indexOf(targetValue) !== -1
+        ) {
+          // 목표값(예시에서는 subject값)이 있고 블랙리스트에 포함되어 있다면 존재여부 체크
+          this.$excludeKeys.push(key)
+        }
+
+        return true
+      },
+
       // [START] length validate section
       // 최소 n의 길이어야 한다
       minLength: (key, extraValue = [], data = {}): boolean => {
@@ -365,7 +434,12 @@ class Kalidator {
           return true
         }
 
-        const minLength = extraValue[0]
+        let minLength = extraValue[0]
+
+        // 숫자값이 아니면 GetTargetValue 시도해봄
+        if (isNaN(Number.parseFloat(minLength))) {
+          minLength = Kalidator.getTargetValue(data, extraValue[0])
+        }
 
         if (isNaN(Number.parseInt(minLength))) {
           throw new InvalidRuleError(
@@ -375,7 +449,7 @@ class Kalidator {
 
         const targetValue = Kalidator.getTargetValue(data, key)
         if (targetValue === null) {
-          return false;
+          return false
         }
 
         if (!isNaN(targetValue.length)) {
@@ -394,7 +468,12 @@ class Kalidator {
           return true
         }
 
-        const maxLength = extraValue[0]
+        let maxLength = extraValue[0]
+
+        // 숫자값이 아니면 GetTargetValue 시도해봄
+        if (isNaN(Number.parseFloat(maxLength))) {
+          maxLength = Kalidator.getTargetValue(data, extraValue[0])
+        }
 
         if (isNaN(Number.parseInt(maxLength))) {
           throw new InvalidRuleError(
@@ -404,7 +483,7 @@ class Kalidator {
 
         const targetValue = Kalidator.getTargetValue(data, key)
         if (targetValue === null) {
-          return false;
+          return false
         }
 
         if (!isNaN(targetValue.length)) {
@@ -456,16 +535,24 @@ class Kalidator {
           return true
         }
 
-        const minValue = extraValue[0]
+        let minValue = extraValue[0]
 
-        if (isNaN(Number.parseInt(minValue))) {
+        // 숫자값이 아니면 GetTargetValue 시도해봄
+        if (isNaN(Number.parseFloat(minValue))) {
+          minValue = Kalidator.getTargetValue(data, extraValue[0])
+        }
+
+        if (isNaN(Number.parseFloat(minValue))) {
           throw new InvalidRuleError(
             `최소 조건값 [${minValue}]는 숫자로 변환할 수 없는 값입니다.`,
           )
         }
 
         const targetValue = Kalidator.getTargetValue(data, key)
-        return is.number(targetValue) && targetValue * 1 >= minValue
+        return (
+          is.number(targetValue) &&
+          Number.parseFloat(targetValue) >= Number.parseFloat(minValue)
+        )
       },
 
       // 최대 n의 값이어야 한다
@@ -475,16 +562,24 @@ class Kalidator {
           return true
         }
 
-        const maxValue = extraValue[0]
+        let maxValue = extraValue[0]
 
-        if (isNaN(Number.parseInt(maxValue))) {
+        // 숫자값이 아니면 GetTargetValue 시도해봄
+        if (isNaN(Number.parseFloat(maxValue))) {
+          maxValue = Kalidator.getTargetValue(data, extraValue[0])
+        }
+
+        if (isNaN(Number.parseFloat(maxValue))) {
           throw new InvalidRuleError(
             `최대 조건값 [${extraValue}]는 숫자로 변환할 수 없는 값입니다.`,
           )
         }
 
         const targetValue = Kalidator.getTargetValue(data, key)
-        return is.number(targetValue) && targetValue * 1 <= maxValue
+        return (
+          is.number(targetValue) &&
+          Number.parseFloat(targetValue) <= Number.parseFloat(maxValue)
+        )
       },
 
       // 최소 n1, 최대 n2의 값이어야 한다
@@ -497,11 +592,11 @@ class Kalidator {
         const minValue = extraValue[0]
         const maxValue = extraValue[1]
 
-        if (isNaN(Number.parseInt(minValue))) {
+        if (isNaN(Number.parseFloat(minValue))) {
           throw new InvalidRuleError(
             `최소 조건값 [${minValue}]는 숫자로 변환할 수 없는 값입니다.`,
           )
-        } else if (isNaN(Number.parseInt(maxValue))) {
+        } else if (isNaN(Number.parseFloat(maxValue))) {
           throw new InvalidRuleError(
             `최대 조건값 [${maxValue}]는 숫자로 변환할 수 없는 값입니다.`,
           )
@@ -509,8 +604,8 @@ class Kalidator {
 
         // minValue, maxValue 검사결과 반환
         return (
-          (this.$defaults.testers.minValue(key, minValue, data) as boolean) &&
-          (this.$defaults.testers.maxValue(key, maxValue, data) as boolean)
+          (this.$defaults.testers.minValue(key, [minValue], data) as boolean) &&
+          (this.$defaults.testers.maxValue(key, [maxValue], data) as boolean)
         )
       },
       // [END] valueSize validate section
@@ -528,7 +623,7 @@ class Kalidator {
         )
         const targetValue = Kalidator.getTargetValue(data, key)
 
-        return extraValueArray.indexOf(targetValue.toString()) !== -1
+        return extraValueArray.indexOf((targetValue || '').toString()) !== -1
       },
 
       // 주어진 값들 중에 존재하지 않아야 한다
@@ -543,7 +638,7 @@ class Kalidator {
         )
         const targetValue = Kalidator.getTargetValue(data, key)
 
-        return extraValueArray.indexOf(targetValue.toString()) === -1
+        return extraValueArray.indexOf((targetValue || '').toString()) === -1
       },
 
       // 비어있는 값이어야 한다
@@ -612,9 +707,7 @@ class Kalidator {
 
         const targetValue = Kalidator.getTargetValue(data, key)
         if (typeof targetValue !== 'string') {
-          throw new InvalidValueError(
-            `전달된 값 [${targetValue}]이 문자열이 아닙니다.`,
-          )
+          return false
         }
 
         return (
@@ -636,6 +729,24 @@ class Kalidator {
 
         try {
           return moment(targetValue).isValid()
+        } catch (error) {
+          return false
+        }
+      },
+
+      // 주어진 날짜 포맷과 일치해야한다
+      dateFormat: (key, extraValue = [], data = {}): boolean => {
+        // 테스트 불필요라면 통과처리
+        if (this.__isTestNotRequired('dateFormat', key)) {
+          return true
+        }
+
+        const targetValue = Kalidator.getTargetValue(data, key)
+
+        const formatString: string = extraValue[0]
+
+        try {
+          return targetValue == moment(targetValue).format(formatString)
         } catch (error) {
           return false
         }
@@ -683,11 +794,15 @@ class Kalidator {
         const compareValue =
           Kalidator.getTargetValue(data, extraValue[0]) !== null
             ? Kalidator.getTargetValue(data, extraValue[0])
-            : extraValue
+            : extraValue[0]
         const valueDate = moment(targetValue)
         const compareDate = moment(compareValue)
 
-        return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) < 0
+        return (
+          valueDate.isValid() &&
+          compareDate.isValid() &&
+          valueDate.diff(compareDate) < 0
+        )
       },
       // 주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터와 같거나 빠른 날짜여야 한다
       earlierOrEqualThan: (key, extraValue = [], data = {}): boolean => {
@@ -701,11 +816,15 @@ class Kalidator {
         const compareValue =
           Kalidator.getTargetValue(data, extraValue[0]) !== null
             ? Kalidator.getTargetValue(data, extraValue[0])
-            : extraValue
+            : extraValue[0]
         const valueDate = moment(targetValue)
         const compareDate = moment(compareValue)
 
-        return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) <= 0
+        return (
+          valueDate.isValid() &&
+          compareDate.isValid() &&
+          valueDate.diff(compareDate) <= 0
+        )
       },
 
       // 주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터보다 늦은 날짜여야 한다
@@ -720,11 +839,15 @@ class Kalidator {
         const compareValue =
           Kalidator.getTargetValue(data, extraValue[0]) !== null
             ? Kalidator.getTargetValue(data, extraValue[0])
-            : extraValue
+            : extraValue[0]
         const valueDate = moment(targetValue)
         const compareDate = moment(compareValue)
 
-        return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) > 0
+        return (
+          valueDate.isValid() &&
+          compareDate.isValid() &&
+          valueDate.diff(compareDate) > 0
+        )
       },
 
       // 주어진 값이 날짜로 추출 가능한 값이며 주어진 비교 데이터와 같거나 늦은 날짜여야 한다
@@ -739,18 +862,26 @@ class Kalidator {
         const compareValue =
           Kalidator.getTargetValue(data, extraValue[0]) !== null
             ? Kalidator.getTargetValue(data, extraValue[0])
-            : extraValue
+            : extraValue[0]
         const valueDate = moment(targetValue)
         const compareDate = moment(compareValue)
 
-        return valueDate.isValid() && compareDate.isValid() && valueDate.diff(compareDate) >= 0
+        return (
+          valueDate.isValid() &&
+          compareDate.isValid() &&
+          valueDate.diff(compareDate) >= 0
+        )
       },
       // [END] date validate section
     },
   }
 
   // 조건부 필수 규칙명 목록
-  private $conditionalRequiredRules = ['requiredIf', 'requiredNotIf']
+  private $conditionalRequiredRules = [
+    'requiredIf',
+    'requiredNotIf',
+    'requiredAtLeast',
+  ]
 
   /**
    * 유효성 검사 객체 생성자
@@ -831,13 +962,7 @@ class Kalidator {
     this.data = {}
     if (data instanceof FormData) {
       data.forEach((value, key) => {
-        if (this.data[key] && Array.isArray(this.data[key])) {
-          this.data[key].push(value)
-        } else if (this.data[key] && !Array.isArray(this.data[key])) {
-          this.data[key] = [this.data[key], value]
-        } else {
-          this.data[key] = value
-        }
+        this.setValueByHtmlKey(key, value)
       })
     } else if (data instanceof HTMLElement) {
       const inputs = data.querySelectorAll('[name]')
@@ -849,44 +974,95 @@ class Kalidator {
         if (input instanceof HTMLInputElement) {
           if (type == 'radio') {
             if (input.checked) {
-              this.data[name] = input.value
+              this.setValueByHtmlKey(name, input.value)
             }
           } else if (type == 'checkbox') {
             if (input.checked) {
-              this.data[name] = input.value
+              this.setValueByHtmlKey(name, input.value)
             }
           } else if (type == 'file') {
             if (input.files && input.files.length === 1) {
-              this.data[name] = input.files[0]
+              this.setValueByHtmlKey(name, input.files[0])
             } else if (input.files && input.files.length > 1) {
-              this.data[name] = input.files
+              this.setValueByHtmlKey(name, input.files)
             } else {
-              this.data[name] = null
+              this.setValueByHtmlKey(name, null)
             }
           } else {
-            this.data[name] = input.value
+            this.setValueByHtmlKey(name, input.value)
           }
         } else if (input instanceof HTMLSelectElement) {
-          const selectedOptions = input.selectedOptions
+          const selectedOptions = input.querySelectorAll('option:checked')
           if (selectedOptions.length > 1) {
             this.data[name] = []
             for (let index = 0; index < selectedOptions.length; index++) {
-              this.data[name].push(selectedOptions[index].value)
+              this.data[name].push(
+                (selectedOptions[index] as HTMLOptionElement).value,
+              )
             }
           } else if (selectedOptions.length == 1) {
-            this.data[name] = selectedOptions[0].value
+            this.setValueByHtmlKey(
+              name,
+              (selectedOptions[0] as HTMLOptionElement).value,
+            )
           }
+        } else if (input instanceof HTMLTextAreaElement) {
+          this.setValueByHtmlKey(name, input.value)
         }
       }
     } else if (typeof data == 'object') {
       for (var key in data) {
         if (data.hasOwnProperty(key)) {
           var value = data[key]
-          this.data[key] = value
+          this.setValueByHtmlKey(key, value)
         }
       }
     }
     return this
+  }
+
+  /**
+   * HTML 형식의 키값을 가진 대상의 값을 지정하는 내부함수
+   * @param {string} key 대상 키
+   * @param {*} value 대상 값
+   */
+  setValueByHtmlKey(key: string, value: any) {
+    // test[7][id] 의 값을 'test'로 지정하는 경우
+    // 이미 this.data[test] = 'legacy value~' 처럼 값이 지정되어있으면 덮어씀
+    let dottedKey = key.replace(/\[([^\]]{1,})\]/g, '.$1')
+    let splittedKeyList = dottedKey.split('.')
+
+    var targetValue = this.data
+    for (let index = 0; index < splittedKeyList.length; index++) {
+      const isLast = splittedKeyList.length === index + 1
+      const splittedKey = splittedKeyList[index]
+      const setToArray = /\[\]$/.test(splittedKey)
+      const isBeforeWasArray = Array.isArray(targetValue)
+      let replacedKey = splittedKey.replace(/\[\]$/, '')
+      const isNextNumericKey = !isNaN(
+        Number.parseInt(splittedKeyList[index + 1]),
+      )
+
+      if (!targetValue[replacedKey]) {
+        if (isLast) {
+          if (setToArray) {
+            targetValue[replacedKey] = [value]
+          } else {
+            targetValue[replacedKey] = value
+          }
+        } else {
+          if (setToArray || isNextNumericKey) {
+            targetValue[replacedKey] = []
+          } else {
+            targetValue[replacedKey] = {}
+          }
+        }
+      } else if (Array.isArray(targetValue[replacedKey]) && isLast) {
+        targetValue[replacedKey].push(value)
+      }
+
+      targetValue = targetValue[replacedKey]
+    }
   }
 
   // 검사규칙 지정 메소드 (단일세팅 반복호출)
@@ -994,6 +1170,7 @@ class Kalidator {
             if (ruleString.indexOf(':') !== -1) {
               // requiredIf:subject,math,music
               const testerNameAndExtraValues = ruleString.split(':') // ["requiredIf", "subject,math,music"]
+
               testerName = testerNameAndExtraValues[0] // "requiredIf"
               if (testerNameAndExtraValues[1].indexOf(',') !== -1) {
                 extraValue = testerNameAndExtraValues[1].split(',') // ["subject", "math", "music"]
@@ -1017,46 +1194,50 @@ class Kalidator {
             let totalPafList: any[] = paramAsteriskFlatten.concat([])
 
             while (
-              paramAsteriskFlatten.length > 0
-              && !paramAsteriskFlatten.some((paf) => paf.indexOf('*') === -1)
+              paramAsteriskFlatten.length > 0 &&
+              !paramAsteriskFlatten.some((paf) => paf.indexOf('*') === -1)
             ) {
               const replacedParams: any[] = []
               paramAsteriskFlatten
-              .filter(paf => {
-                return !noDataPafList.some(ndpaf => ndpaf === paf)
-              })
-              .forEach((paf) => {
-                const splitedPaf = paf.split('.')
-                const asteriskPosition = splitedPaf.indexOf('*')
-                if (asteriskPosition > -1) {
-                  // paf 안에 * 가 존재하는 분기
-                  const beforeAsterisk = splitedPaf.slice(0, asteriskPosition)
-                  const beforeAsteriskTargetValue = Kalidator.getTargetValue(
-                    this.data,
-                    beforeAsterisk.join('.'),
-                  )
-                  if (beforeAsteriskTargetValue !== null) {
-                    // *를 포함한 paf에 해당하는 데이터가 존재하는 분기
-                    // 기존 totalPafList 목록에서 asterisk 항목을 제거해줌
-                    totalPafList = totalPafList.filter(tpaf => tpaf !== paf)
-                    for (let j = 0; j < beforeAsteriskTargetValue.length; j++) {
-                      const clone = splitedPaf.concat([])
-                      clone.splice(asteriskPosition, 1, j.toString())
-                      replacedParams.push(clone.join('.'))
-                      totalPafList.push(clone.join('.'))
+                .filter((paf) => {
+                  return !noDataPafList.some((ndpaf) => ndpaf === paf)
+                })
+                .forEach((paf) => {
+                  const splitedPaf = paf.split('.')
+                  const asteriskPosition = splitedPaf.indexOf('*')
+                  if (asteriskPosition > -1) {
+                    // paf 안에 * 가 존재하는 분기
+                    const beforeAsterisk = splitedPaf.slice(0, asteriskPosition)
+                    const beforeAsteriskTargetValue = Kalidator.getTargetValue(
+                      this.data,
+                      beforeAsterisk.join('.'),
+                    )
+                    if (beforeAsteriskTargetValue !== null) {
+                      // *를 포함한 paf에 해당하는 데이터가 존재하는 분기
+                      // 기존 totalPafList 목록에서 asterisk 항목을 제거해줌
+                      totalPafList = totalPafList.filter((tpaf) => tpaf !== paf)
+                      for (
+                        let j = 0;
+                        j < beforeAsteriskTargetValue.length;
+                        j++
+                      ) {
+                        const clone = splitedPaf.concat([])
+                        clone.splice(asteriskPosition, 1, j.toString())
+                        replacedParams.push(clone.join('.'))
+                        totalPafList.push(clone.join('.'))
+                      }
+                    } else {
+                      // *를 포함한 paf에 해당하는 데이터가 존재하지 않는 분기
+                      noDataPafList.push(paf)
+                      replacedParams.push(splitedPaf.join('.'))
+                      totalPafList.push(paf)
                     }
                   } else {
-                    // *를 포함한 paf에 해당하는 데이터가 존재하지 않는 분기
-                    noDataPafList.push(paf)
-                    replacedParams.push(splitedPaf.join('.'))
+                    // paf 안에 *가 존재하지 않는 분기
+                    replacedParams.push(paf)
                     totalPafList.push(paf)
                   }
-                } else {
-                  // paf 안에 *가 존재하지 않는 분기
-                  replacedParams.push(paf)
-                  totalPafList.push(paf)
-                }
-              })
+                })
               paramAsteriskFlatten = replacedParams
             }
 
@@ -1082,7 +1263,10 @@ class Kalidator {
                 ''
               )
                 .replace(/:param/g, label || paramForRow)
-                .replace(/:value/g, Kalidator.getTargetValue(this.data, paramForRow))
+                .replace(
+                  /:value/g,
+                  Kalidator.getTargetValue(this.data, paramForRow),
+                )
 
               if (isNumericExist) {
                 let asteriskSeq = 0
@@ -1101,9 +1285,14 @@ class Kalidator {
               extraValue.forEach((val: string) => {
                 // extraValue details.0.imageUrl 식으로 넘어온 경우,
                 // details.0.imageUrl 메세지 > details.*.imageUrl 메세지 순서로 체크
-                let evLabel = this.$keyAndLabels[val];
+                let evLabel = this.$keyAndLabels[val]
                 if (!evLabel) {
-                  const asteriskedKey = val.split('.').map(evSlice => isNaN(Number.parseFloat(evSlice)) ? evSlice : '*').join('.')
+                  const asteriskedKey = val
+                    .split('.')
+                    .map((evSlice) =>
+                      isNaN(Number.parseFloat(evSlice)) ? evSlice : '*',
+                    )
+                    .join('.')
                   evLabel = this.$keyAndLabels[asteriskedKey]
                 }
 
@@ -1122,9 +1311,14 @@ class Kalidator {
               extraValue.forEach((val: string, i: number) => {
                 // extraValue details.0.imageUrl 식으로 넘어온 경우,
                 // details.0.imageUrl 메세지 > details.*.imageUrl 메세지 순서로 체크
-                let evLabel = this.$keyAndLabels[val];
+                let evLabel = this.$keyAndLabels[val]
                 if (!evLabel) {
-                  const asteriskedKey = val.split('.').map(evSlice => isNaN(Number.parseFloat(evSlice)) ? evSlice : '*').join('.')
+                  const asteriskedKey = val
+                    .split('.')
+                    .map((evSlice) =>
+                      isNaN(Number.parseFloat(evSlice)) ? evSlice : '*',
+                    )
+                    .join('.')
                   evLabel = this.$keyAndLabels[asteriskedKey]
                 }
 
@@ -1132,22 +1326,21 @@ class Kalidator {
                   evLabel = val
                 }
 
-                message = message.replace(
-                  new RegExp(`:\\$${i}`, 'g'),
-                  evLabel,
-                )
+                message = message.replace(new RegExp(`:\\$${i}`, 'g'), evLabel)
               })
 
               return this.applyZosa(message)
             }
 
             const testPromises = totalPafList.map((paramForRow) => {
-              if (extraValue.some(ev => ev.indexOf('*') > -1)) {
-                // extraValue 값이 details.*.imageUrl 처럼 애스터리스크일 수 있기때문에 
+              let remadeExtraValue = extraValue.concat([])
+              if (extraValue.some((ev) => ev.indexOf('*') > -1)) {
+                // extraValue 값이 details.*.imageUrl 처럼 애스터리스크일 수 있기때문에
                 // paramForRow 값이 자릿수가 일치하는 숫자값인 경우 보정해줌
-                extraValue = extraValue.map(ev => {
+                remadeExtraValue = extraValue.map((ev) => {
                   let splitedPaf = paramForRow.split('.')
                   let splitedEv = ev.split('.')
+
                   const remadeEv: any[] = []
                   for (let index = 0; index < splitedEv.length; index++) {
                     const evSlice = splitedEv[index]
@@ -1158,21 +1351,36 @@ class Kalidator {
                     }
                   }
 
-                  return remadeEv.join('.');
+                  return remadeEv.join('.')
                 })
               }
-              const testResult = tester(paramForRow, extraValue, this.data)
-              const failMessage = getFailMessage(paramForRow)
+
+              // const testResult = tester(paramForRow, remadeExtraValue, this.data)
+              let failMessage = getFailMessage(paramForRow)
+
+              let testResult: any = false
+              if (this.$excludeKeys.indexOf(paramForRow) > -1) {
+                testResult = Promise.resolve(true)
+              } else {
+                try {
+                  testResult = tester(paramForRow, remadeExtraValue, this.data)
+                } catch (error) {
+                  testResult = false
+                  failMessage = error.message
+                }
+              }
 
               if (testResult instanceof Promise) {
-                return testResult.then((result) => {
-                  return Promise.resolve({
-                    isPass: result,
-                    testerName: testerName,
-                    paramForRow: paramForRow,
-                    failMessage: failMessage,
+                return testResult
+                  .then((result) => {
+                    return Promise.resolve({
+                      isPass: result,
+                      testerName: testerName,
+                      paramForRow: paramForRow,
+                      failMessage: failMessage,
+                    })
                   })
-                }).catch(Promise.reject)
+                  .catch(Promise.reject)
               } else {
                 return Promise.resolve({
                   isPass: testResult,
@@ -1220,16 +1428,46 @@ class Kalidator {
         return new Promise((resolve, reject) => {
           if (this.isPassed) {
             if (options && options.pass && typeof options.pass === 'function') {
-              options.pass();
+              options.pass()
             }
-            resolve()
+            resolve(this.data)
           } else {
-            const firstErrorBag = this.errors[Object.keys(this.errors)[0]]
-            this.firstErrorMessage =
-              firstErrorBag[Object.keys(firstErrorBag)[0]]
+            const errorKeys = Object.keys(this.errors)
+            let firstErrorParamName = errorKeys[0]
+
+            let checkName = firstErrorParamName
+            let loopCount = 0
+            while (checkName.match(/\.[1-9]*\./) && loopCount < 1000) {
+              let match = checkName.match(/\.([1-9]*)\./)
+              let seq: number = Number.parseInt(match![1])
+              let paramToBeforeSeq = checkName.slice(0, match!.index || 0)
+              for (let index = 0; index < seq; index++) {
+                for (
+                  let keyIndex = 0;
+                  keyIndex < errorKeys.length;
+                  keyIndex++
+                ) {
+                  const errorKey = errorKeys[keyIndex]
+                  if (errorKey.startsWith(paramToBeforeSeq + '.' + index)) {
+                    firstErrorParamName = errorKey
+                    break
+                  }
+                }
+              }
+
+              checkName = checkName.replace(
+                /\.([1-9]*)\./,
+                '.' + (seq - 1) + '.',
+              )
+              loopCount++
+            }
+
+            const firstErrorBag = this.errors[firstErrorParamName]
+            const firstErrorRuleName = Object.keys(firstErrorBag)[0]
+            this.firstErrorMessage = firstErrorBag[firstErrorRuleName]
 
             if (options && options.fail && typeof options.fail === 'function') {
-              options.fail(this.errors, this.firstErrorMessage);
+              options.fail(this.errors, this.firstErrorMessage)
             }
 
             reject({

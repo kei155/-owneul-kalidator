@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+  </head>
+  <body>
+    <div>
+      <form id="frm_login">
+        <input type="text" name="str_id">
+        <input type="password" name="str_password">
+        <div>
+          <input type="text" name="int_age">
+        </div>
+        <div>
+          <input type="text" name="str_email">
+        </div>
+        <div>
+          <input type="text" name="str_today" value="2019-04-25">
+          <input type="text" name="str_birthdate">
+        </div>
+        <div>
+          <select name="str_telecom" multiple="">
+            <option value="SKT">SKT</option>
+            <option value="KT">KT</option>
+            <option value="LG U+">LG</option>
+          </select>
+        </div>
+        <div>
+          <input type="radio" name="str_sex" id="str_sex_M" value="M">
+          <label for="str_sex_M">남성</label>
+          <input type="radio" name="str_sex" id="str_sex_F" value="F">
+          <label for="str_sex_F">여성</label>
+        </div>
+        <div>
+          <input type="file" name="file_avatar" id="">
+        </div>
+        <div>
+          <input type="file" name="file_addimages" id="" multiple="">
+        </div>
+        <div>
+          <input type="text" name="str_code">
+        </div>
+        <div>
+          <div>
+            <input type="text" name="students[0][id]" value="12">
+            <input type="text" name="students[0][name]" value="nico">
+            <input type="text" name="students[0][age]" value="19">
+            <input type="text" name="students[0][grade]" value="3">
+            <input type="text" name="students[0][hobbies][0]" value="movie">
+            <input type="text" name="students[0][hobbies][1]" value="basketball">
+            <input type="text" name="bb[]" value="movie">
+            <input type="text" name="bb[]" value="basketball">
+            <select data-select="" name="end_date_hour">
+              <option value="0" selected="">0시</option>
+              <option value="1">1시</option>
+              <option value="2">2시</option>
+              <option value="3">3시</option>
+              <option value="4">4시</option>
+              <option value="5">5시</option>
+              <option value="6">6시</option>
+              <option value="7">7시</option>
+              <option value="8">8시</option>
+              <option value="9">9시</option>
+              <option value="10">10시</option>
+              <option value="11">11시</option>
+              <option value="12">12시</option>
+              <option value="13">13시</option>
+              <option value="14">14시</option>
+              <option value="15">15시</option>
+              <option value="16">16시</option>
+              <option value="17">17시</option>
+              <option value="18">18시</option>
+              <option value="19">19시</option>
+              <option value="20">20시</option>
+              <option value="21">21시</option>
+              <option value="22">22시</option>
+              <option value="23">23시</option>
+      </select>
+          </div>
+          <div>
+            <input type="text" name="students[1][name]" value="timo">
+            <input type="text" name="students[1][age]" value="17">
+            <input type="text" name="students[1][grade]" value="4">
+          </div>
+        </div>
+        <button type="button" onclick="validate(frm_login)">
+          확인(폼엘리먼트)
+        </button>
+      </form>
+    </div>
+
+    <div>
+      <button type="button" onclick="validateFormData()">확인(폼데이터)</button>
+    </div>
+
+    <div>
+      <button type="button" onclick="validateObject()">확인(오브젝트)</button>
+    </div>
+
+    <script src="ec8039744e68a5752e63efd1f364908e"></script>
+    <script data-parcel-key="cafdf2c13e0e35c1dad1bc5c92a7a29c">
+      function validate() {
+        const formEl = document.getElementById('frm_login')
+        var validator = new Kalidator(new FormData(formEl))
+
+        validator.setRules({
+          'students.*.id': ['required', 'in:12'],
+          'students.*.id22': ['required', 'in:12'],
+        })
+        .run()
+        console.log(validator)
+      }
+
+      validate()
+
+      var data = {};
+      function setValueByHtmlKey(key, value) {
+          // test[7][id] 의 값을 'test'로 지정하는 경우
+          // 이미 this.data[test] = 'legacy value~' 처럼 값이 지정되어있으면 덮어씀
+          let dottedKey = key.replace(/\[([^\]]{1,})\]/g, '.$1');
+          let splittedKeyList = dottedKey.split('.');
+
+          var targetValue = data;
+          for (let index = 0; index < splittedKeyList.length; index++) {
+            const isLast = splittedKeyList.length === (index + 1);
+            const splittedKey = splittedKeyList[index];
+            const setToArray = /\[\]$/.test(splittedKey);
+            const isBeforeWasArray = Array.isArray(targetValue);
+            let replacedKey = splittedKey.replace(/\[\]$/, '')
+            const isNextNumericKey = !isNaN(Number.parseInt(splittedKeyList[index + 1]));
+
+            if (!targetValue[replacedKey]) {
+              if (isLast) {
+                if (setToArray) {
+                  targetValue[replacedKey] = [value]
+                } else {
+                  targetValue[replacedKey] = value
+                }
+              } else {
+                if (setToArray || isNextNumericKey) {
+                  targetValue[replacedKey] = [];
+                } else {
+                  targetValue[replacedKey] = {};
+                }
+              }
+            }
+
+            targetValue = targetValue[replacedKey]
+          }
+
+          console.log(splittedKeyList, data);
+      }
+      // setValueByHtmlKey('test[7][id]', 'test!@#!#');
+      // setValueByHtmlKey('test[7][ids][]', 'test!@#!#');
+      // setValueByHtmlKey('test[7][hobby][][cost]', 'test!@#!#');
+      // setValueByHtmlKey('test[7][hobby][][cost]', 'test!@#!#22');
+      // const data2 = {
+      //   form: {
+      //       title: '테스트제목',
+      //       displayStartAt: '2020-11-12',
+      //       displayEndAt: '2020-11-30',
+      //       isUse: true,
+      //       details: [
+      //         {
+      //           alt: "",
+      //           applyEndAt: "2020-12-22",
+      //           applyStartAt: "2020-12-01",
+      //           cardCode: "",
+      //           cardName: "",
+      //           description: "",
+      //           imageUrl: "http://img.fashionplus.co.kr/mall/popup/img/mainpop_201215.jpg",
+      //           monthConcat: "",
+      //         }
+      //       ],
+      //   },
+
+      //   monthList: [
+      //       2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12
+      //   ],
+      // };
+      // const validator2 = new Kalidator(data2.form);
+      // // 공용 규칙
+      // var commonRules = {
+      //     'title(제목)': ['required', 'maxLength:50'],
+      //     'displayStartAt(노출 기간 - 시작일)': ['required'],
+      //     'displayEndAt(노출 기간 - 종료일)': ['required'],
+      //     'details(할부 정보)': ['required', 'minLength:1'],
+      //     'details.*.applyStartAt(카드할부 진행일 - 시작일)': ['required'],
+      //     'details.*.applyEndAt(카드할부 진행일 - 종료일)': ['required'],
+      //     'details.*.imageUrl(카드사 이미지)': ['required'],
+      //     'details.*.alt(이미지 대체 텍스트)': ['requiredIf:details.*.imageUrl'],
+      //     'details.*.cardName(카드 종류)': ['required'],
+      //     'details.*.monthConcat(무이자 정보)': ['required'],
+      //     'details.*.description(할부 안내 내용)': ['required', 'maxLength:200'],
+      // };
+      // var messages = {
+      //     'title.required': '제목을 입력~~',
+      //     'details.required': '할부 정보를 등록해주세요.',
+      //     'details.minLength': '할부 정보를 등록해주세요.',
+      //     'details.*.alt.requiredIf': ':$0'
+      // }
+      // function run () {
+      //   validator2.setRules(commonRules).setMessages(messages).run()
+      //   .then(function () {
+
+      //   })
+      //   .catch(function (fail) {
+      //     console.error(fail)
+      //   })
+      // }
+      // run();
+    </script>
+    <script data-parcel-key="4953026b35adaba332425d153a3374b1">
+      var tt = function () {
+        const validator = new Kalidator();
+        const data = {
+            goodsList: [
+                {
+                    id: 1004,
+                    name: '민무늬 원피스',
+                    price: 89000,
+                    checks: ['red', 'yellow'],
+                },
+                {
+                    id: 2007,
+                    name: '닌텐도 스위치',
+                    price: '0',
+                    checks: ['red'],
+                },
+                {
+                    id: 3049,
+                    name: '비닐하우스 미니어쳐 키트',
+                    price: 199000,
+                    bg: 1,
+                },
+            ],
+            buyer: {
+                memberId: '3',
+                tel: '010-1234-5678',
+                address: '경상북도 울릉군 울릉읍 독도이사부길 63 (독도등대)',
+                deliveryMessage: '안전배송바랍니다123456789012345678',
+            },
+        };
+        const rules = {
+            'goodsList.*.test': ['requiredIf:goodsList.*.bg'],
+            'goodsList.*.id(상품코드)': ['required', 'minValue:1'],
+            'goodsList.*.name(상품명)': ['required'],
+            'goodsList.*.price(판매가)': ['required', 'number'],
+            'goodsList.*.checks.*(상품 선택사항)': ['in:black,red,yellow'],
+            'buyer.memberId(회원 아이디)': ['required', 'existMember'],
+            'buyer.tel(구매자 연락처)': ['required', 'phoneNumber'],
+            'buyer.address(구매자 주소)': ['required'],
+            'buyer.deliveryMessage(배송메세지)': ['required', 'maxLength:30'],
+        };
+        const messages = {
+            'goodsList.*.id.required': ':param(은/는) 필수입니다. (:*0번째 상품)',
+            'goodsList.*.id.minValue': ':param(은/는) 최소 :$0원 이상이어야합니다. (:*0번째 상품)',
+            'goodsList.*.name.required': ':param(은/는) 필수입니다. (:*0번째 상품)',
+            'goodsList.*.price.required': ':param(은/는) 필수입니다. (:*0번째 상품)',
+            'goodsList.*.price.number': ':param(은/는) 유효한 정수여야합니다. (:*0번째 상품)',
+            'goodsList.*.checks.*.in': ':param(은/는) :$concat 중의 하나여야합니다. (:*0번째 상품의 :*1번째 선택사항)',
+            'buyer.memberId.required': ':param(은/는) 필수입니다.',
+            'buyer.memberId.existMember': ':param [:value](은/는) 존재하지 않는 :param입니다.',
+            'buyer.memberId.phoneNumber': ':param(은/는) 올바른 휴대전화번호가 아닙니다.',
+            'buyer.deliveryMessage.maxLength': ':param(은/는) :$0자 이하여야합니다.',
+        };
+
+        validator
+            .setData(data)
+            .setRules(rules)
+            .setMessages(messages)
+            .registTester('phoneNumber', function (paramName, extraValues, data) {
+                const tel = Kalidator.getTargetValue(data, paramName)
+                return tel !== null && tel.match(/[0-9]{3}-[0-9]{4}-[0-9]{4}/) !== null;
+            })
+            .registTester('existMember', function (paramName, extraValues, data) {
+                const memberId = Kalidator.getTargetValue(data, paramName);
+                return fetch(`https://jsonplaceholder.typicode.com/users/${memberId}`)
+                    .then(function (response) {
+                        return response.json();
+                    })
+                    .then(function (json) {
+                        return Object.keys(json).length > 0;
+                    })
+                    .catch(function (err) {
+                        return false;
+                    })
+            })
+            .run({
+              pass: function () {
+                alert('all validate passed!');
+              },
+              fail: function (errors, firstErrorMessage) {
+                console.error('모든 실패한 테스트에 대한 메세지 : ', errors);
+                console.error('첫 번째 실패 테스트 메세지 : ', firstErrorMessage);
+              }
+            })
+            // .then(function () {
+            //     alert('all validate passed!');
+            // })
+            // .catch(function (err) {
+            //     console.error('모든 실패한 테스트에 대한 메세지 : ', err.errors);
+            //     console.error('첫 번째 실패 테스트 메세지 : ', err.firstErrorMessage);
+            // })
+      }
+    </script>
+  </body>
+</html>

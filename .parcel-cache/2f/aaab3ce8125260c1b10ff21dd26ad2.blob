@@ -1,0 +1,2 @@
+window.Kalidator = require('./index')
+console.log(window.Kalidator)

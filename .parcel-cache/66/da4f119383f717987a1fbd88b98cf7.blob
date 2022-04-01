@@ -1,0 +1,92 @@
+var tt = function () {
+        const validator = new Kalidator();
+        const data = {
+            goodsList: [
+                {
+                    id: 1004,
+                    name: '민무늬 원피스',
+                    price: 89000,
+                    checks: ['red', 'yellow'],
+                },
+                {
+                    id: 2007,
+                    name: '닌텐도 스위치',
+                    price: '0',
+                    checks: ['red'],
+                },
+                {
+                    id: 3049,
+                    name: '비닐하우스 미니어쳐 키트',
+                    price: 199000,
+                    bg: 1,
+                },
+            ],
+            buyer: {
+                memberId: '3',
+                tel: '010-1234-5678',
+                address: '경상북도 울릉군 울릉읍 독도이사부길 63 (독도등대)',
+                deliveryMessage: '안전배송바랍니다123456789012345678',
+            },
+        };
+        const rules = {
+            'goodsList.*.test': ['requiredIf:goodsList.*.bg'],
+            'goodsList.*.id(상품코드)': ['required', 'minValue:1'],
+            'goodsList.*.name(상품명)': ['required'],
+            'goodsList.*.price(판매가)': ['required', 'number'],
+            'goodsList.*.checks.*(상품 선택사항)': ['in:black,red,yellow'],
+            'buyer.memberId(회원 아이디)': ['required', 'existMember'],
+            'buyer.tel(구매자 연락처)': ['required', 'phoneNumber'],
+            'buyer.address(구매자 주소)': ['required'],
+            'buyer.deliveryMessage(배송메세지)': ['required', 'maxLength:30'],
+        };
+        const messages = {
+            'goodsList.*.id.required': ':param(은/는) 필수입니다. (:*0번째 상품)',
+            'goodsList.*.id.minValue': ':param(은/는) 최소 :$0원 이상이어야합니다. (:*0번째 상품)',
+            'goodsList.*.name.required': ':param(은/는) 필수입니다. (:*0번째 상품)',
+            'goodsList.*.price.required': ':param(은/는) 필수입니다. (:*0번째 상품)',
+            'goodsList.*.price.number': ':param(은/는) 유효한 정수여야합니다. (:*0번째 상품)',
+            'goodsList.*.checks.*.in': ':param(은/는) :$concat 중의 하나여야합니다. (:*0번째 상품의 :*1번째 선택사항)',
+            'buyer.memberId.required': ':param(은/는) 필수입니다.',
+            'buyer.memberId.existMember': ':param [:value](은/는) 존재하지 않는 :param입니다.',
+            'buyer.memberId.phoneNumber': ':param(은/는) 올바른 휴대전화번호가 아닙니다.',
+            'buyer.deliveryMessage.maxLength': ':param(은/는) :$0자 이하여야합니다.',
+        };
+
+        validator
+            .setData(data)
+            .setRules(rules)
+            .setMessages(messages)
+            .registTester('phoneNumber', function (paramName, extraValues, data) {
+                const tel = Kalidator.getTargetValue(data, paramName)
+                return tel !== null && tel.match(/[0-9]{3}-[0-9]{4}-[0-9]{4}/) !== null;
+            })
+            .registTester('existMember', function (paramName, extraValues, data) {
+                const memberId = Kalidator.getTargetValue(data, paramName);
+                return fetch(`https://jsonplaceholder.typicode.com/users/${memberId}`)
+                    .then(function (response) {
+                        return response.json();
+                    })
+                    .then(function (json) {
+                        return Object.keys(json).length > 0;
+                    })
+                    .catch(function (err) {
+                        return false;
+                    })
+            })
+            .run({
+              pass: function () {
+                alert('all validate passed!');
+              },
+              fail: function (errors, firstErrorMessage) {
+                console.error('모든 실패한 테스트에 대한 메세지 : ', errors);
+                console.error('첫 번째 실패 테스트 메세지 : ', firstErrorMessage);
+              }
+            })
+            // .then(function () {
+            //     alert('all validate passed!');
+            // })
+            // .catch(function (err) {
+            //     console.error('모든 실패한 테스트에 대한 메세지 : ', err.errors);
+            //     console.error('첫 번째 실패 테스트 메세지 : ', err.firstErrorMessage);
+            // })
+      }
