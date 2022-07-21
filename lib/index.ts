@@ -1191,6 +1191,7 @@ class Kalidator {
 
             const noDataPafList: any[] = []
 
+            const totalPafAndSeqs: { [key: string]: number[] } = {}
             let totalPafList: any[] = paramAsteriskFlatten.concat([])
 
             while (
@@ -1216,15 +1217,26 @@ class Kalidator {
                       // *를 포함한 paf에 해당하는 데이터가 존재하는 분기
                       // 기존 totalPafList 목록에서 asterisk 항목을 제거해줌
                       totalPafList = totalPafList.filter((tpaf) => tpaf !== paf)
-                      for (
-                        let j = 0;
-                        j < beforeAsteriskTargetValue.length;
-                        j++
-                      ) {
-                        const clone = splitedPaf.concat([])
-                        clone.splice(asteriskPosition, 1, j.toString())
-                        replacedParams.push(clone.join('.'))
-                        totalPafList.push(clone.join('.'))
+                      let seq = 1
+                      for (const key in beforeAsteriskTargetValue) {
+                        if (
+                          Object.prototype.hasOwnProperty.call(
+                            beforeAsteriskTargetValue,
+                            key,
+                          )
+                        ) {
+                          const clone = splitedPaf.concat([])
+                          clone.splice(asteriskPosition, 1, key)
+                          replacedParams.push(clone.join('.'))
+                          totalPafList.push(clone.join('.'))
+
+                          if (!totalPafAndSeqs[clone.join('.')]) {
+                            totalPafAndSeqs[clone.join('.')] = []
+                          }
+                          totalPafAndSeqs[clone.join('.')].push(seq)
+                        }
+
+                        seq++
                       }
                     } else {
                       // *를 포함한 paf에 해당하는 데이터가 존재하지 않는 분기
@@ -1244,6 +1256,8 @@ class Kalidator {
             const getFailMessage = (paramForRow: string) => {
               // 검사기 통과 못 한 파라미터에 form.data.2.subject 처럼
               let messageKey = paramForRow
+
+              const isSeqsExists = totalPafAndSeqs[messageKey] != undefined
               const isNumericExist = messageKey
                 .split('.')
                 .some((splited) => this.$is.number(splited))
@@ -1255,6 +1269,7 @@ class Kalidator {
                   })
                   .join('.')
               }
+
               let message: string = (
                 this.$messages[paramForRow + '.' + testerName] ||
                 this.$messages[messageKey + '.' + testerName] ||
@@ -1279,6 +1294,17 @@ class Kalidator {
                     asteriskSeq++
                   }
                 })
+              }
+
+              if (isSeqsExists) {
+                let asteriskSeq = 0
+                if (totalPafAndSeqs[messageKey] && totalPafAndSeqs[messageKey][asteriskSeq]) {
+                  message = message.replace(
+                    new RegExp(`:\\*${asteriskSeq}`, 'g'),
+                    `${totalPafAndSeqs[messageKey][asteriskSeq]}`,
+                  )
+                  asteriskSeq++
+                }
               }
 
               const valueLabels: string[] = []

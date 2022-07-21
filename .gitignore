@@ -4,6 +4,7 @@
 node_modules
 build
 .module-cache
+.parcel-cache
 npm-debug.log
 logs
 *.log

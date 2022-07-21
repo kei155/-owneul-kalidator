@@ -799,6 +799,7 @@ var Kalidator = (function () {
                     }
                     var paramAsteriskFlatten = [param];
                     var noDataPafList = [];
+                    var totalPafAndSeqs = {};
                     var totalPafList = paramAsteriskFlatten.concat([]);
                     var _loop_1 = function () {
                         var replacedParams = [];
@@ -814,11 +815,19 @@ var Kalidator = (function () {
                                 var beforeAsteriskTargetValue = Kalidator.getTargetValue(_this.data, beforeAsterisk.join('.'));
                                 if (beforeAsteriskTargetValue !== null) {
                                     totalPafList = totalPafList.filter(function (tpaf) { return tpaf !== paf; });
-                                    for (var j = 0; j < beforeAsteriskTargetValue.length; j++) {
-                                        var clone = splitedPaf.concat([]);
-                                        clone.splice(asteriskPosition, 1, j.toString());
-                                        replacedParams.push(clone.join('.'));
-                                        totalPafList.push(clone.join('.'));
+                                    var seq = 1;
+                                    for (var key in beforeAsteriskTargetValue) {
+                                        if (Object.prototype.hasOwnProperty.call(beforeAsteriskTargetValue, key)) {
+                                            var clone = splitedPaf.concat([]);
+                                            clone.splice(asteriskPosition, 1, key);
+                                            replacedParams.push(clone.join('.'));
+                                            totalPafList.push(clone.join('.'));
+                                            if (!totalPafAndSeqs[clone.join('.')]) {
+                                                totalPafAndSeqs[clone.join('.')] = [];
+                                            }
+                                            totalPafAndSeqs[clone.join('.')].push(seq);
+                                        }
+                                        seq++;
                                     }
                                 }
                                 else {
@@ -840,6 +849,7 @@ var Kalidator = (function () {
                     }
                     var getFailMessage = function (paramForRow) {
                         var messageKey = paramForRow;
+                        var isSeqsExists = totalPafAndSeqs[messageKey] != undefined;
                         var isNumericExist = messageKey
                             .split('.')
                             .some(function (splited) { return _this.$is.number(splited); });
@@ -866,6 +876,13 @@ var Kalidator = (function () {
                                     asteriskSeq_1++;
                                 }
                             });
+                        }
+                        if (isSeqsExists) {
+                            var asteriskSeq = 0;
+                            if (totalPafAndSeqs[messageKey] && totalPafAndSeqs[messageKey][asteriskSeq]) {
+                                message = message.replace(new RegExp(":\\*" + asteriskSeq, 'g'), "" + totalPafAndSeqs[messageKey][asteriskSeq]);
+                                asteriskSeq++;
+                            }
                         }
                         var valueLabels = [];
                         extraValue.forEach(function (val) {
