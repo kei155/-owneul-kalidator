@@ -17,7 +17,6 @@ interface RunOption {
     pass?: () => {};
     fail?: (errors: Errors, firstErrorMessage: string) => {};
 }
-
 declare class Kalidator {
     static globalMessage: Messages;
     static setGlobalMessage(ruleName: string, message: string): typeof Kalidator;
@@ -53,5 +52,4 @@ declare class Kalidator {
     registTester(testerName: string, tester: (key: string, extraValue?: any[], data?: Data) => boolean): Kalidator;
     run(options?: RunOption): Promise<unknown>;
 }
-
-export = Kalidator
+export = Kalidator;
