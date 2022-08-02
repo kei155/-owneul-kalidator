@@ -11,5 +11,6 @@ logs
 types
 test.html
 test.js
+test.ts
 dist
 .cache

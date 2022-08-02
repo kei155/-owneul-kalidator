@@ -1390,7 +1390,7 @@ class Kalidator {
               } else {
                 try {
                   testResult = tester(paramForRow, remadeExtraValue, this.data)
-                } catch (error) {
+                } catch (error: any) {
                   testResult = false
                   failMessage = error.message
                 }
