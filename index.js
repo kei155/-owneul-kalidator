@@ -960,10 +960,18 @@ var Kalidator = (function () {
                                     isPass: result,
                                     testerName: testerName,
                                     paramForRow: paramForRow,
-                                    failMessage: failMessage,
+                                    failMessage: result instanceof Error ? (result.message || failMessage) : failMessage,
                                 });
                             })
                                 .catch(Promise.reject);
+                        }
+                        else if (testResult instanceof Error) {
+                            return Promise.resolve({
+                                isPass: false,
+                                testerName: testerName,
+                                paramForRow: paramForRow,
+                                failMessage: testResult.message || failMessage,
+                            });
                         }
                         else {
                             return Promise.resolve({
