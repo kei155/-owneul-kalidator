@@ -8,9 +8,8 @@ build
 npm-debug.log
 logs
 *.log
-types
 test.html
 test.js
 test.ts
-dist
 .cache
+test/dist
